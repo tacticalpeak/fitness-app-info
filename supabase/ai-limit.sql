@@ -8,6 +8,8 @@
 --   testphase_tage     = 7   Länge der Testphase
 --   paywall            = aus Testphase und Abo sind abgeschaltet, alle dürfen alles.
 --                             Auf "an" stellen, sobald die App mit Abo im App Store ist.
+--   extra_paket        = aus Kauf von Extra-Paketen anbieten ("an", sobald der Kauf im App Store eingerichtet ist)
+--   extra_paket_einheiten = 15  Einheiten pro Extra-Paket
 -- 1 Einheit = 1 KI-Anfrage (z. B. 1 Trainingswoche, 1 Recherche, 1 Wochenrückblick).
 
 -- ---------------------------------------------------------------------
@@ -24,7 +26,9 @@ insert into public.app_settings (key, value) values
   ('limit_monat', '30'),
   ('neuplanungen_monat', '2'),
   ('testphase_tage', '7'),
-  ('paywall', 'aus')
+  ('paywall', 'aus'),
+  ('extra_paket', 'aus'),
+  ('extra_paket_einheiten', '15')
 on conflict (key) do nothing;
 
 create or replace function public.setting_int(p_key text, p_default integer)
@@ -48,6 +52,23 @@ create table if not exists public.ai_usage_daily (
   primary key (user_id, day)
 );
 alter table public.ai_usage_daily enable row level security;
+
+-- Extra-Guthaben aus gekauften Extra-Paketen. Verfällt nicht und wird erst nach dem Monatslimit verbraucht.
+create table if not exists public.ai_credits (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  units integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+alter table public.ai_credits enable row level security;
+
+-- Jeder Kauf wird mit seiner Transaktionsnummer gespeichert, damit er nie doppelt gutgeschrieben wird
+create table if not exists public.ai_credit_purchases (
+  transaction_id text primary key,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  units integer not null,
+  created_at timestamptz not null default now()
+);
+alter table public.ai_credit_purchases enable row level security;
 
 -- Prüft Tages- und Monatsgrenze und zählt die Anfrage.
 -- Ergebnis: 'ok' (erlaubt und gezählt), 'day' (Tagesgrenze erreicht), 'month' (Monatsgrenze erreicht)
@@ -78,7 +99,13 @@ begin
     return 'day';
   end if;
   if v_month + p_cost > v_month_limit then
-    return 'month';
+    -- Monatslimit erreicht: Extra-Guthaben verwenden, falls vorhanden
+    update public.ai_credits
+       set units = units - p_cost, updated_at = now()
+     where user_id = p_user and units >= p_cost;
+    if not found then
+      return 'month';
+    end if;
   end if;
 
   insert into public.ai_usage_daily as u (user_id, day, units)
@@ -102,6 +129,29 @@ set search_path = public
 as $$
 begin
   return public.ai_use_check(p_user, p_cost, 10, 30) = 'ok';
+end;
+$$;
+
+-- Extra-Paket gutschreiben (später automatisch nach dem Kauf im App Store, zum Testen auch von Hand im SQL Editor).
+-- Gibt das neue Guthaben zurück. Dieselbe Transaktionsnummer wird nur einmal gutgeschrieben.
+create or replace function public.ai_grant_credits(p_user uuid, p_transaction text, p_units integer)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_units integer;
+begin
+  insert into public.ai_credit_purchases (transaction_id, user_id, units)
+  values (left(p_transaction, 120), p_user, p_units)
+  on conflict (transaction_id) do nothing;
+  if found then
+    insert into public.ai_credits as c (user_id, units) values (p_user, p_units)
+    on conflict (user_id) do update set units = c.units + excluded.units, updated_at = now();
+  end if;
+  select units into v_units from public.ai_credits where user_id = p_user;
+  return coalesce(v_units, 0);
 end;
 $$;
 
@@ -237,7 +287,10 @@ begin
     'month_used', v_month,
     'month_limit', public.setting_int('limit_monat', 30),
     'replans_used', v_replans,
-    'replans_limit', public.setting_int('neuplanungen_monat', 2)
+    'replans_limit', public.setting_int('neuplanungen_monat', 2),
+    'extra_units', coalesce((select units from public.ai_credits where user_id = v_user), 0),
+    'extra_pack_enabled', coalesce((select lower(value) from public.app_settings where key = 'extra_paket'), 'aus') = 'an',
+    'extra_pack_units', public.setting_int('extra_paket_einheiten', 15)
   );
 end;
 $$;
@@ -327,7 +380,10 @@ grant execute on function public.ai_access(uuid, boolean) to service_role;
 grant execute on function public.ai_event(uuid, text, text, integer, text) to service_role;
 grant execute on function public.ai_log(uuid, text, text, integer, integer, numeric) to service_role;
 grant execute on function public.my_access() to authenticated, service_role;
+revoke all on function public.ai_grant_credits(uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.ai_grant_credits(uuid, text, integer) to service_role;
 
+revoke all on public.ai_credits, public.ai_credit_purchases from anon, authenticated;
 revoke all on public.app_settings, public.ai_usage_daily, public.ai_usage_log,
   public.subscriptions, public.ai_trial, public.ai_events from anon, authenticated;
 revoke all on public.ai_kosten_pro_tag, public.ai_kosten_pro_nutzer from anon, authenticated;
