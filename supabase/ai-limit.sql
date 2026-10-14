@@ -1,8 +1,42 @@
--- Tactical Peak: KI-Limits und Verbrauchsmessung
+-- Tactical Peak: KI-Limits, Testphase, Abo und Verbrauchsmessung
 -- Einmal im Supabase SQL Editor ausführen. Mehrfaches Ausführen schadet nicht.
 --
--- Grenzen pro Nutzer: 15 Einheiten pro Tag, 60 Einheiten pro Kalendermonat (deutsche Zeit).
+-- Alle Grenzen stehen in der Tabelle "app_settings" und lassen sich dort im Table Editor ändern:
+--   limit_tag          = 10  KI-Einheiten pro Tag
+--   limit_monat        = 30  KI-Einheiten pro Kalendermonat (deutsche Zeit)
+--   neuplanungen_monat = 2   Pläne verwerfen und neu erstellen pro Monat
+--   testphase_tage     = 7   Länge der Testphase
+--   paywall            = aus Testphase und Abo sind abgeschaltet, alle dürfen alles.
+--                             Auf "an" stellen, sobald die App mit Abo im App Store ist.
 -- 1 Einheit = 1 KI-Anfrage (z. B. 1 Trainingswoche, 1 Recherche, 1 Wochenrückblick).
+
+-- ---------------------------------------------------------------------
+-- 0. Einstellungen
+-- ---------------------------------------------------------------------
+create table if not exists public.app_settings (
+  key text primary key,
+  value text not null
+);
+alter table public.app_settings enable row level security;
+
+insert into public.app_settings (key, value) values
+  ('limit_tag', '10'),
+  ('limit_monat', '30'),
+  ('neuplanungen_monat', '2'),
+  ('testphase_tage', '7'),
+  ('paywall', 'aus')
+on conflict (key) do nothing;
+
+create or replace function public.setting_int(p_key text, p_default integer)
+returns integer
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select nullif(regexp_replace(value, '[^0-9]', '', 'g'), '')::integer
+                     from public.app_settings where key = p_key), p_default);
+$$;
 
 -- ---------------------------------------------------------------------
 -- 1. Zähler pro Nutzer und Tag
@@ -13,12 +47,11 @@ create table if not exists public.ai_usage_daily (
   units integer not null default 0,
   primary key (user_id, day)
 );
-
--- Nur der Server (Service Role) darf die Tabelle lesen und schreiben, Nutzer nicht
 alter table public.ai_usage_daily enable row level security;
 
 -- Prüft Tages- und Monatsgrenze und zählt die Anfrage.
 -- Ergebnis: 'ok' (erlaubt und gezählt), 'day' (Tagesgrenze erreicht), 'month' (Monatsgrenze erreicht)
+-- Die Grenzen aus app_settings haben Vorrang vor den übergebenen Werten.
 create or replace function public.ai_use_check(p_user uuid, p_cost integer, p_day_limit integer, p_month_limit integer)
 returns text
 language plpgsql
@@ -28,6 +61,8 @@ as $$
 declare
   v_day date := (now() at time zone 'Europe/Berlin')::date;
   v_month_start date := date_trunc('month', v_day)::date;
+  v_day_limit integer := public.setting_int('limit_tag', p_day_limit);
+  v_month_limit integer := public.setting_int('limit_monat', p_month_limit);
   v_today integer;
   v_month integer;
 begin
@@ -39,10 +74,10 @@ begin
     from public.ai_usage_daily
    where user_id = p_user and day >= v_month_start;
 
-  if v_today + p_cost > p_day_limit then
+  if v_today + p_cost > v_day_limit then
     return 'day';
   end if;
-  if v_month + p_cost > p_month_limit then
+  if v_month + p_cost > v_month_limit then
     return 'month';
   end if;
 
@@ -58,8 +93,7 @@ begin
 end;
 $$;
 
--- Ältere Funktionen rufen noch ai_use(Nutzer, Kosten, Tageslimit) auf.
--- Auch für sie gelten jetzt höchstens 15 pro Tag und 60 pro Monat.
+-- Ältere Funktionen rufen noch ai_use(Nutzer, Kosten, Tageslimit) auf. Auch für sie gelten die Grenzen oben.
 create or replace function public.ai_use(p_user uuid, p_cost integer, p_limit integer)
 returns boolean
 language plpgsql
@@ -67,12 +101,149 @@ security definer
 set search_path = public
 as $$
 begin
-  return public.ai_use_check(p_user, p_cost, least(p_limit, 15), 60) = 'ok';
+  return public.ai_use_check(p_user, p_cost, 10, 30) = 'ok';
 end;
 $$;
 
 -- ---------------------------------------------------------------------
--- 2. Verbrauchsmessung: Tokens und Kosten jeder KI-Anfrage
+-- 2. Testphase und Abo
+-- ---------------------------------------------------------------------
+-- Aktive Abos. Später trägt der Zahlungsdienst (App Store) sie automatisch ein.
+-- Bis dahin kannst du hier Tester von Hand freischalten (user_id und active_until).
+create table if not exists public.subscriptions (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  active_until timestamptz not null,
+  source text not null default 'manuell'
+);
+alter table public.subscriptions enable row level security;
+
+-- Beginn der Testphase (startet mit der ersten KI-Anfrage)
+create table if not exists public.ai_trial (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  started_at timestamptz not null default now()
+);
+alter table public.ai_trial enable row level security;
+
+-- Ergebnis: 'pro' (Abo oder Paywall aus), 'trial' (in der Testphase), 'expired' (Testphase vorbei)
+create or replace function public.ai_access(p_user uuid, p_start boolean)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_started timestamptz;
+begin
+  if coalesce((select lower(value) from public.app_settings where key = 'paywall'), 'aus') <> 'an' then
+    return 'pro';
+  end if;
+  if exists (select 1 from public.subscriptions where user_id = p_user and active_until > now()) then
+    return 'pro';
+  end if;
+  select started_at into v_started from public.ai_trial where user_id = p_user;
+  if v_started is null then
+    if p_start then
+      insert into public.ai_trial (user_id) values (p_user) on conflict (user_id) do nothing;
+    end if;
+    return 'trial';
+  end if;
+  if now() < v_started + make_interval(days => public.setting_int('testphase_tage', 7)) then
+    return 'trial';
+  end if;
+  return 'expired';
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- 3. Gezählte Aktionen: Neuplanungen, Ziele und Recherchen in der Testphase
+-- ---------------------------------------------------------------------
+create table if not exists public.ai_events (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  kind text not null,
+  action_id text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, kind, action_id)
+);
+alter table public.ai_events enable row level security;
+
+-- Zählt eine Aktion. Dieselbe action_id zählt nur einmal (z. B. eine Neuplanung über mehrere Wochen).
+-- p_period: 'month' = pro Kalendermonat, 'all' = insgesamt
+-- Ergebnis: true = erlaubt, false = Grenze erreicht
+create or replace function public.ai_event(p_user uuid, p_kind text, p_action text, p_limit integer, p_period text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_from timestamptz;
+  v_count integer;
+  v_action text := left(coalesce(p_action, ''), 60);
+begin
+  perform pg_advisory_xact_lock(hashtext('ai_event:' || p_user::text));
+  if exists (select 1 from public.ai_events where user_id = p_user and kind = p_kind and action_id = v_action) then
+    return true;
+  end if;
+  if p_period = 'month' then
+    v_from := date_trunc('month', now() at time zone 'Europe/Berlin') at time zone 'Europe/Berlin';
+  else
+    v_from := '-infinity'::timestamptz;
+  end if;
+  select count(*) into v_count from public.ai_events
+   where user_id = p_user and kind = p_kind and created_at >= v_from;
+  if v_count >= p_limit then
+    return false;
+  end if;
+  insert into public.ai_events (user_id, kind, action_id) values (p_user, p_kind, v_action);
+  delete from public.ai_events where user_id = p_user and created_at < now() - interval '400 days';
+  return true;
+end;
+$$;
+
+-- Für die App: eigener Stand (Abo/Testphase und verbrauchte Einheiten). Liefert nur Daten des angemeldeten Nutzers.
+create or replace function public.my_access()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user uuid := auth.uid();
+  v_day date := (now() at time zone 'Europe/Berlin')::date;
+  v_month_start date := date_trunc('month', v_day)::date;
+  v_started timestamptz;
+  v_trial_days integer := public.setting_int('testphase_tage', 7);
+  v_today integer;
+  v_month integer;
+  v_replans integer;
+begin
+  if v_user is null then
+    return null;
+  end if;
+  select started_at into v_started from public.ai_trial where user_id = v_user;
+  select coalesce(sum(units) filter (where day = v_day), 0), coalesce(sum(units), 0)
+    into v_today, v_month
+    from public.ai_usage_daily
+   where user_id = v_user and day >= v_month_start;
+  select count(*) into v_replans from public.ai_events
+   where user_id = v_user and kind = 'replan'
+     and created_at >= date_trunc('month', now() at time zone 'Europe/Berlin') at time zone 'Europe/Berlin';
+  return json_build_object(
+    'status', public.ai_access(v_user, false),
+    'trial_days_left', case when v_started is null then v_trial_days
+      else greatest(0, ceil(extract(epoch from (v_started + make_interval(days => v_trial_days) - now())) / 86400))::integer end,
+    'day_used', v_today,
+    'day_limit', public.setting_int('limit_tag', 10),
+    'month_used', v_month,
+    'month_limit', public.setting_int('limit_monat', 30),
+    'replans_used', v_replans,
+    'replans_limit', public.setting_int('neuplanungen_monat', 2)
+  );
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- 4. Verbrauchsmessung: Tokens und Kosten jeder KI-Anfrage
 -- ---------------------------------------------------------------------
 create table if not exists public.ai_usage_log (
   id bigint generated always as identity primary key,
@@ -84,7 +255,6 @@ create table if not exists public.ai_usage_log (
   output_tokens integer not null default 0,
   cost_usd numeric(10, 5) not null default 0
 );
-
 alter table public.ai_usage_log enable row level security;
 create index if not exists ai_usage_log_created_idx on public.ai_usage_log (created_at);
 
@@ -139,15 +309,26 @@ group by 1, 2
 order by 1 desc, 4 desc;
 
 -- ---------------------------------------------------------------------
--- 3. Rechte: nur die Edge Functions (Service Role) dürfen das alles benutzen
+-- 5. Rechte: nur die Edge Functions (Service Role) dürfen das benutzen.
+--    Ausnahme: my_access() darf jeder angemeldete Nutzer für sich selbst abfragen.
 -- ---------------------------------------------------------------------
+revoke all on function public.setting_int(text, integer) from public, anon, authenticated;
 revoke all on function public.ai_use_check(uuid, integer, integer, integer) from public, anon, authenticated;
 revoke all on function public.ai_use(uuid, integer, integer) from public, anon, authenticated;
+revoke all on function public.ai_access(uuid, boolean) from public, anon, authenticated;
+revoke all on function public.ai_event(uuid, text, text, integer, text) from public, anon, authenticated;
 revoke all on function public.ai_log(uuid, text, text, integer, integer, numeric) from public, anon, authenticated;
+revoke all on function public.my_access() from public, anon;
+
+grant execute on function public.setting_int(text, integer) to service_role;
 grant execute on function public.ai_use_check(uuid, integer, integer, integer) to service_role;
 grant execute on function public.ai_use(uuid, integer, integer) to service_role;
+grant execute on function public.ai_access(uuid, boolean) to service_role;
+grant execute on function public.ai_event(uuid, text, text, integer, text) to service_role;
 grant execute on function public.ai_log(uuid, text, text, integer, integer, numeric) to service_role;
+grant execute on function public.my_access() to authenticated, service_role;
 
-revoke all on public.ai_usage_daily, public.ai_usage_log from anon, authenticated;
+revoke all on public.app_settings, public.ai_usage_daily, public.ai_usage_log,
+  public.subscriptions, public.ai_trial, public.ai_events from anon, authenticated;
 revoke all on public.ai_kosten_pro_tag, public.ai_kosten_pro_nutzer from anon, authenticated;
 grant select on public.ai_kosten_pro_tag, public.ai_kosten_pro_nutzer to service_role;
