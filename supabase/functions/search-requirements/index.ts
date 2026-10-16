@@ -49,7 +49,7 @@ Antworte ausschließlich mit einem JSON-Objekt, ohne Text davor oder danach und 
 {
   "found": true oder false,
   "event_full_name": "vollständiger Name der erkannten Veranstaltung",
-  "category": "kurze Kategorie, z. B. Ausdauer, Taktische Spiele, CrossFit, Calisthenics",
+  "category": "kurze Kategorie, z. B. Ausdauer, Taktische Spiele, CrossFit, Kraft",
   "summary": "1 bis 2 Sätze, worauf es bei der Veranstaltung ankommt",
   "variants": [ { "name": "Name der Variante", "description": "ein kurzer Satz, z. B. Distanz" } ],
   "requirements": [
@@ -59,7 +59,6 @@ Antworte ausschließlich mit einem JSON-Objekt, ohne Text davor oder danach und 
 }`;
 
 const OFFICIAL_CATEGORY = 'Behörden-Sporttest';
-const CALISTHENICS_CATEGORY = 'Calisthenics';
 
 const OFFICIAL_NOTICE =
   'Wichtig: Sporttests unterscheiden sich je nach Bundesland, Dienstherr, Laufbahn, Alter und Geschlecht. ' +
@@ -79,8 +78,8 @@ function isOfficialTest(text: string): boolean {
   );
 }
 
-// Erkennt Calisthenics-Skills und Körpergewichts-Übungen als Ziel
-function isCalisthenics(text: string): boolean {
+// Erkennt typische Skill-Namen (z. B. Körpergewichts-Skills) als Übungsziel
+function isSkillName(text: string): boolean {
   return /calisthenics|street ?workout|human ?flag|front ?lever|back ?lever|planche|muscle[- ]?ups?|handstand|l[- ]?sit|v[- ]?sit|pistol|one[- ]?arm|einarmig|dragon ?flag|manna|maltese|iron ?cross|hspu|elbow ?lever|hefesto|skin ?the ?cat|tiger ?bend|crow ?pose|krähe|kopfstand|headstand|victorian|korean ?dips?/i.test(
     text,
   );
@@ -90,7 +89,7 @@ function isCalisthenics(text: string): boolean {
 // Was hier nicht erkannt wird, meldet die KI über "exercise_goal" (siehe SYSTEM_PROMPT).
 function isExerciseGoal(text: string): boolean {
   return (
-    isCalisthenics(text) ||
+    isSkillName(text) ||
     /bankdr[üu]ck|bench ?press|kniebeuge|squat|kreuzheben|deadlift|klimmz[üu]g|pull[- ]?ups?|chin[- ]?ups?|liegest[üu]tz|push[- ]?ups?|\bdips\b|schulterdr[üu]ck|overhead ?press|military ?press|snatch|rei[ßs]en|clean|umsetzen|sto[ßs]en|\bjerk\b|thruster|double ?unders?|rope ?climb|seilklettern|toes ?to ?bar|knees ?to ?elbow|burpees?|wall ?balls?|kettlebell|spagat|splits?\b|\b1 ?rm\b|maximalkraft|einer?wiederholungsmaximum|\d+\s*kg\b|\d+\s*(wdh|wiederholungen|reps)\b|\d+\s*(s|sek|sekunden)\s*halten/i.test(
       text,
     )
@@ -153,7 +152,7 @@ Aufgabe: Ermittle, was nötig ist, um dieses Ziel sauber zu erreichen, und über
 
 Vorgehen:
 - Bestimme das Ziel genau (Übung und Zielleistung). Nennt der Nutzer eine Zahl (Gewicht, Wiederholungen, Haltezeit, Zeit, Distanz), nimm genau diese als Ziel. Nennt er keine, wähle eine gängige, sinnvolle Zielleistung und kennzeichne sie mit "ca.".
-- Bestimme die Art des Ziels für "exercise_type": "Calisthenics", "Kraft", "Gewichtheben", "Turnen/CrossFit-Skill", "Ausdauer" oder "Beweglichkeit".
+- Prüfe, was das Ziel wirklich verlangt: welche Skills bzw. Techniken, welche Grundübungen, welche Kraft, Ausdauer und Beweglichkeit. Ordne es nicht pauschal einer Sportart zu, sondern leite die Anforderungen aus dem konkreten Ziel ab.
 - Recherchiere die gängige Progression: bei Skills die Vorstufen (leicht nach schwer), bei Kraft- und Wiederholungszielen die Zwischenziele und Varianten, bei Zeitzielen die Zwischenziele (z. B. Tempo auf Teilstrecken), bei Beweglichkeit die Dehnstufen.
 - Nenne messbare Zielwerte mit Einheit: Haltezeit in Sekunden, Wiederholungen, kg (oder Anteil vom Ziel- bzw. Körpergewicht), Zeit, Distanz oder Tempo. Typische Richtwerte kennzeichnest du mit "ca.".
 - Erfinde keine exotischen Werte. Bleibe bei gängigen, in Quellen verbreiteten Standards.
@@ -178,7 +177,6 @@ Antworte ausschließlich mit einem JSON-Objekt, ohne Text davor oder danach und 
 {
   "found": true oder false,
   "event_full_name": "erkanntes Ziel, z. B. Bankdrücken 100 kg (1 Wiederholung)",
-  "exercise_type": "Calisthenics, Kraft, Gewichtheben, Turnen/CrossFit-Skill, Ausdauer oder Beweglichkeit",
   "summary": "1 bis 2 Sätze, worauf es beim Ziel ankommt",
   "requirements": [ { "name": "Ziel: / Vorstufe 1: / Grundkraft: ...", "target": "Richtwert mit Einheit" } ],
   "training_hints": ["kurzer Hinweis"],
@@ -408,7 +406,7 @@ Deno.serve(async (req: Request) => {
   const variant = String(body && body.variant ? body.variant : '').trim().slice(0, 160);
 
   const official = isOfficialTest(event + ' ' + hint);
-  const skill = !official && isCalisthenics(event + ' ' + hint);
+  const skill = !official && isSkillName(event + ' ' + hint);
   const obstacle = !official && !skill && isObstacleRace(event + ' ' + hint + ' ' + variant);
   // Übungsziel (jede Art von Übung): per Erkennung oder später, wenn die KI es als Übungsziel meldet
   let exercise = !official && !obstacle && (skill || isExerciseGoal(event + ' ' + hint));
@@ -588,12 +586,6 @@ Deno.serve(async (req: Request) => {
     .slice(0, 5)
     .map((u: string) => ({ title: seenUrls.get(u) as string, url: u }));
 
-  // Körpergewichts-Skills behalten die Kategorie "Calisthenics" (eigener Regelblock in create-plan),
-  // alle anderen Übungen bekommen "Übungsziel"
-  const exerciseCategory = skill || /calisthenics/i.test(String(parsed.exercise_type ? parsed.exercise_type : ''))
-    ? CALISTHENICS_CATEGORY
-    : EXERCISE_CATEGORY;
-
   const fullName = parsed.event_full_name ? String(parsed.event_full_name) : event;
   const summaryText = parsed.summary ? String(parsed.summary) : '';
 
@@ -608,7 +600,7 @@ Deno.serve(async (req: Request) => {
     category: official
       ? OFFICIAL_CATEGORY
       : exercise
-        ? exerciseCategory
+        ? EXERCISE_CATEGORY
         : obstacle
           ? 'Hindernislauf'
           : parsed.category
