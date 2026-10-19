@@ -64,6 +64,9 @@ Regeln:
 - Erstelle genau so viele Trainingstage, wie im Profil unter "daysPerWeek" steht (höchstens 6). Gibt es "shared_training", ist "daysPerWeek" bereits der Anteil dieses Ziels an der gemeinsamen Woche.
 - Richte Inhalt und Schwerpunkt konsequent an den Zielanforderungen aus. Verteile Belastungen sinnvoll, vermeide zwei harte Beine- oder Laufeinheiten direkt hintereinander.
 - Nutze Bestwerte aus dem Profil. Gibt es einen Maximalwert (z. B. Back Squat 1RM), nenne die Intensität in Prozent und rechne die kg aus, z. B. "75 % des 1RM (ca. 90 kg)". Fehlt der Wert, verwende RPE (Skala 1 bis 10) statt kg.
+- "experience" nennt die Bereiche, in denen der Athlet Erfahrung hat (Kraftsport, CrossFit, Laufen). Ein Fitnesslevel "Keine" bedeutet keine Erfahrung in diesem Bereich. Bei "Keine Kenntnisse" oder fehlenden Bestwerten startest du mit leichten Gewichten, wenigen Wiederholungen und einfachen Übungsvarianten, steuerst über RPE (ca. 5 bis 6) und passt erst anhand von "previous_results" an.
+- "skills" nennt Skills, die der Athlet beherrscht (z. B. Kipping-Klimmzug, Toes to Bar, Handstand-Liegestütz, Muscle-up). Fehlende Skills nur über Vorstufen oder Skalierungen einplanen. Laufumfang ("weekly_km", "longest_run_km") nur langsam steigern (höchstens etwa 10 % pro Woche).
+- Verwende für diese Übungen genau diese keys: back_squat, deadlift, bench_press, overhead_press, clean_and_jerk, snatch, strict_pull_ups, double_unders.
 - Laufeinheiten gibst du über Dauer, Distanz und Tempo oder Herzfrequenzbereich an (z. B. "Tempo 5:45 min/km" oder "locker, RPE 4"), abgeleitet aus der 5-km-Zeit, falls vorhanden.
 - Plane konservativ. Bei Einsteigern weniger Volumen, einfachere Übungen und Skalierungen.
 - Berücksichtige Einschränkungen und Verletzungen: meide belastende Übungen oder ersetze sie, und weise in "note" darauf hin.
@@ -430,6 +433,18 @@ Deno.serve(async (req: Request) => {
     strict_pullups_max: str(p.pullups, 3),
     fran_min: str(p.fran, 10),
     limitations: str(p.limitations, 300),
+    experience: str(p.experience, 80),
+    bench_press_1rm_kg: str(p.bench, 5),
+    overhead_press_1rm_kg: str(p.ohp, 5),
+    clean_and_jerk_1rm_kg: str(p.cleanJerk, 5),
+    snatch_1rm_kg: str(p.snatch, 5),
+    row_2000m_min: str(p.row2k, 10),
+    double_unders_max: str(p.doubleUnders, 4),
+    skills: str(p.skills, 120),
+    best_10k_min: str(p.run10k, 10),
+    best_half_marathon: str(p.runHalf, 10),
+    weekly_km: str(p.weeklyKm, 5),
+    longest_run_km: str(p.longRun, 5),
   };
 
   const known: string[] = (Array.isArray(body.known_exercises) ? body.known_exercises : [])
