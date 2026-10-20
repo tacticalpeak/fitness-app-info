@@ -157,6 +157,12 @@ Zusatzregeln, weil der Athlet nach einer Trainingspause wieder einsteigt ("comeb
 - Je länger die Pause, desto vorsichtiger. Nach Krankheit zuerst lockere Ausdauer und Technik, nach Verletzung die betroffene Region schonen und in "note" darauf hinweisen, bei Schmerzen abzubrechen.
 - Schreibe in "focus" der Woche "Wiedereinstieg nach Pause".`;
 
+const EXCLUDE_RULES = `
+
+Zusatzregeln, weil der Athlet Dinge ausgeschlossen hat ("goal.excludes"):
+- Plane nichts, was dort genannt ist, auch keine Varianten davon, selbst wenn es zu einer Zielanforderung passt (z. B. "Dry Fire" ausgeschlossen: keine Trockenübungen mit der Waffe).
+- Trainiere die betroffene Fähigkeit stattdessen über andere passende Übungen, wenn das sinnvoll ist, und erwähne den Ausschluss nicht in jeder Einheit.`;
+
 const ACTIVITY_RULES = `
 
 Zusatzregeln, weil der Athlet Trainings oder Wettkämpfe außerhalb des Plans nachgetragen hat ("extra_activities"):
@@ -436,6 +442,7 @@ Deno.serve(async (req: Request) => {
 
   const goalIn = body && body.goal ? body.goal : {};
   const goalTitle = str(goalIn.title, 120);
+  const excludes = str(goalIn.excludes, 200);
   const reqIn: any[] = Array.isArray(goalIn.requirements) ? goalIn.requirements : [];
   const requirements = reqIn
     .filter((r: any) => r && r.name)
@@ -614,6 +621,7 @@ Deno.serve(async (req: Request) => {
       category: str(goalIn.category, 40),
       target_date: str(goalIn.targetDate, 20),
       requirements: requirements,
+      excludes: excludes !== '' ? excludes : undefined,
     },
     profile: profile,
     known_exercises: known,
@@ -677,6 +685,7 @@ Deno.serve(async (req: Request) => {
           (latestTest || latestSim ? RESULT_RULES : '') +
           (equipment ? EQUIPMENT_RULES : '') +
           (comeback ? COMEBACK_RULES : '') +
+          (excludes !== '' ? EXCLUDE_RULES : '') +
           (extraActivities.length > 0 ? ACTIVITY_RULES : '') +
           (adjustWeek ? ADJUST_RULES : ''),
         messages: [{ role: 'user', content: userText }],
