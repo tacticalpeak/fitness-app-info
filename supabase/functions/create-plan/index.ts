@@ -161,7 +161,8 @@ const EXCLUDE_RULES = `
 
 Zusatzregeln, weil der Athlet Dinge ausgeschlossen hat ("goal.excludes"):
 - Plane nichts, was dort genannt ist, auch keine Varianten davon, selbst wenn es zu einer Zielanforderung passt (z. B. "Dry Fire" ausgeschlossen: keine Trockenübungen mit der Waffe).
-- Trainiere die betroffene Fähigkeit stattdessen über andere passende Übungen, wenn das sinnvoll ist, und erwähne den Ausschluss nicht in jeder Einheit.`;
+- Trainiere die betroffene Fähigkeit stattdessen über andere passende Übungen, wenn das sinnvoll ist, und erwähne den Ausschluss nicht in jeder Einheit.
+- Schließt der Athlet eine Belastungsart aus (z. B. schwere Belastungen, Belastungsspitzen, Maximaltests), gilt das für alle 4 Wochen: Woche 3 steigert nur leicht ohne Belastungsspitze, und der Test in Woche 4 ist ohne Maximalversuch (z. B. Beweglichkeits- oder Technikcheck). Ohne einen solchen Ausschluss bleiben Höhepunkt und Test wie oben beschrieben.`;
 
 const ACTIVITY_RULES = `
 
