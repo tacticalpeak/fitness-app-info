@@ -29,6 +29,12 @@ function phaseFor(days: number): string {
   return 'Grundlagenphase';
 }
 
+// Klassische Periodisierung über die Zyklen: 4 Phasen, danach beginnt eine neue Runde auf höherem Niveau
+const CYCLE_PHASES = ['Grundlagenphase', 'Aufbauphase', 'Intensivierungsphase', 'Leistungsphase'];
+function cyclePhaseFor(cycle: number): string {
+  return CYCLE_PHASES[(cycle - 1) % CYCLE_PHASES.length];
+}
+
 function str(v: unknown, max: number): string {
   return String(v === undefined || v === null ? '' : v).trim().slice(0, max);
 }
@@ -166,6 +172,23 @@ Zusatzregeln, weil der Athlet Dinge ausgeschlossen hat ("goal.excludes"):
 - Plane nichts, was dort genannt ist, auch keine Varianten davon, selbst wenn es zu einer Zielanforderung passt (z. B. "Dry Fire" ausgeschlossen: keine Trockenübungen mit der Waffe).
 - Trainiere die betroffene Fähigkeit stattdessen über andere passende Übungen, wenn das sinnvoll ist, und erwähne den Ausschluss nicht in jeder Einheit.
 - Schließt der Athlet eine Belastungsart aus (z. B. schwere Belastungen, Belastungsspitzen, Maximaltests), gilt das für alle 4 Wochen: Woche 3 steigert nur leicht ohne Belastungsspitze, und der Test in Woche 4 ist ohne Maximalversuch (z. B. Beweglichkeits- oder Technikcheck). Ohne einen solchen Ausschluss bleiben Höhepunkt und Test wie oben beschrieben.`;
+
+const CYCLE_RULES = `
+
+Zusatzregeln für den Langzeitaufbau über mehrere Zyklen ("cycle", "cycle_phase"):
+- Der Plan folgt den klassischen Trainingsphasen. "cycle" ist die Nummer des 4-Wochen-Zyklus, "cycle_phase" seine Phase. Gibt es "schedule" mit höchstens 84 Tagen bis zum Termin, hat dessen "phase" Vorrang.
+- Grundlagenphase (allgemeine Vorbereitung): Technik und Bewegungsqualität, Kraftausdauer und Muskelaufbau (z. B. 3 bis 4 Sätze mit 8 bis 12 Wiederholungen, RPE 6 bis 7), aerobe Grundlage mit viel lockerem Umfang, Beweglichkeit.
+- Aufbauphase (spezielle Vorbereitung): Grundkraft mit schwereren Lasten (z. B. 4 bis 5 Sätze mit 4 bis 6 Wiederholungen, RPE 7 bis 8), Schwellen- und Intervalltraining, Schwächen gezielt angehen.
+- Intensivierungsphase: zielspezifisch, Maximal- und Schnellkraft (z. B. 3 bis 5 Wiederholungen, einzelne schwere Sätze mit 1 bis 3, RPE 8 bis 9), wettkampfnahe Workouts, Tempo und kurze intensive Intervalle. Der Umfang sinkt, die Intensität steigt.
+- Leistungsphase: Leistung abrufen, Zieldisziplinen und Benchmarks im Vordergrund, Woche 4 mit Entlastung und einem umfassenden Test aller Zielanforderungen. Danach beginnt mit Zyklus 5 eine neue Runde mit der Grundlagenphase auf höherem Niveau.
+- Der Wochenaufbau innerhalb des Zyklus (Einstieg, Aufbau, Höhepunkt, Entlastung mit Test) gilt weiter, aber mit den Inhalten der Phase.
+- Nenne die Phase kurz im Feld "focus" der Woche (z. B. "Aufbauphase: Grundkraft und Schwelle").
+- Gibt es "previous_cycle" (Trainingstage des letzten Zyklus mit Titel und Übungen), soll sich der neue Zyklus für den Athleten spürbar neu anfühlen und trotzdem systematisch auf dem letzten aufbauen:
+  Behalte die Kernübungen (Grundübungen, Zieldisziplinen, Testübungen), damit der Fortschritt messbar bleibt, aber ändere Satz- und Wiederholungsschema, Intensität und Tempo passend zur neuen Phase.
+  Ersetze den Großteil der Hilfs-, Ergänzungs- und Conditioning-Übungen durch gleichwertige Varianten mit demselben Trainingszweck (z. B. Bulgarian Split Squat statt Ausfallschritte, Ring Rows statt Kurzhantelrudern) und nutze neue Workout- und Intervallformen (z. B. EMOM statt AMRAP, Pyramide statt gleicher Intervalle).
+  Kein Trainingstag gleicht einem Tag aus "previous_cycle" (gleicher Titel oder fast gleiche Übungsliste). Verteile die Schwerpunkte neu auf die Tage, wenn es sinnvoll ist.
+  Woche 1 beginnt nicht wieder auf dem Niveau des alten Zyklus, sondern baut auf den Ergebnissen in "previous_results" auf.
+  Erkläre im "summary" des "outline" in einem Satz die neue Phase und was neu ist.`;
 
 const ACTIVITY_RULES = `
 
@@ -526,6 +549,21 @@ Deno.serve(async (req: Request) => {
   }
 
   const outlineIn = body && body.outline ? body.outline : null;
+
+  // Zyklus und Trainingsphase, dazu die Trainingstage des letzten Zyklus für Abwechslung
+  const cycleNo = Math.round(Number(body && body.cycle));
+  const cycle = Number.isFinite(cycleNo) && cycleNo >= 1 && cycleNo <= 200 ? cycleNo : 0;
+  const pc = body && body.previous_cycle ? body.previous_cycle : null;
+  const previousCycle =
+    cycle > 1 && pc && Array.isArray(pc.days) && pc.days.length > 0
+      ? {
+          cycle: Math.round(Number(pc.cycle)) || cycle - 1,
+          days: pc.days.slice(0, 12).map((d: any) => ({
+            title: str(d && d.title, 60),
+            exercises: (Array.isArray(d && d.exercises) ? d.exercises : []).slice(0, 6).map((x: any) => str(x, 60)),
+          })),
+        }
+      : null;
   const previous = Array.isArray(body.previous_results) ? body.previous_results.slice(0, 40) : [];
 
   // Terminplan: Tage bis zum Zieltermin, ab Beginn dieser Woche
@@ -637,6 +675,13 @@ Deno.serve(async (req: Request) => {
   if (outlineIn) {
     payload.outline = outlineIn;
   }
+  if (cycle > 0) {
+    payload.cycle = cycle;
+    payload.cycle_phase = cyclePhaseFor(cycle);
+  }
+  if (previousCycle) {
+    payload.previous_cycle = previousCycle;
+  }
   if (schedule) {
     payload.schedule = schedule;
   }
@@ -690,6 +735,7 @@ Deno.serve(async (req: Request) => {
           (equipment ? EQUIPMENT_RULES : '') +
           (comeback ? COMEBACK_RULES : '') +
           (excludes !== '' ? EXCLUDE_RULES : '') +
+          (cycle > 0 ? CYCLE_RULES : '') +
           (extraActivities.length > 0 ? ACTIVITY_RULES : '') +
           (adjustWeek ? ADJUST_RULES : ''),
         messages: [{ role: 'user', content: userText }],
