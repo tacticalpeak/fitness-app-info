@@ -173,7 +173,7 @@ Zusatzregeln, weil der Athlet Dinge ausgeschlossen hat ("goal.excludes"):
 const CYCLE_RULES = `
 
 Zusatzregeln für den Langzeitaufbau über mehrere Zyklen ("cycle", "phase_history", "previous_cycle"):
-- Jeder 4-Wochen-Zyklus hat eine klassische Trainingsphase. Steht im übergebenen "outline" bereits "phase", gilt sie für den ganzen Zyklus. Sonst wählst du sie in Woche 1 nach den Regeln unten und gibst sie im Feld "phase" des "outline" zurück.
+- Jeder 4-Wochen-Zyklus hat eine klassische Trainingsphase. Steht im übergebenen "outline" bereits "phase", gilt sie für den ganzen Zyklus. Sonst wählst du sie nach den Regeln unten (auch ab Woche 2, wenn ein älteres "outline" ohne "phase" übergeben wurde) und gibst sie in Woche 1 im Feld "phase" des "outline" zurück.
 - Die Phasen:
   Grundlagenphase (allgemeine Vorbereitung): Technik und Bewegungsqualität, Kraftausdauer und Muskelaufbau (z. B. 3 bis 4 Sätze mit 8 bis 12 Wiederholungen, RPE 6 bis 7), aerobe Grundlage mit viel lockerem Umfang, Beweglichkeit.
   Aufbauphase (spezielle Vorbereitung): Grundkraft mit schwereren Lasten (z. B. 4 bis 5 Sätze mit 4 bis 6 Wiederholungen, RPE 7 bis 8), Schwellen- und Intervalltraining, Schwächen gezielt angehen.
