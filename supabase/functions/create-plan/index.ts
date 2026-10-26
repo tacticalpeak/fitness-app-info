@@ -29,11 +29,8 @@ function phaseFor(days: number): string {
   return 'Grundlagenphase';
 }
 
-// Klassische Periodisierung über die Zyklen: 4 Phasen, danach beginnt eine neue Runde auf höherem Niveau
+// Klassische Trainingsphasen eines Zyklus. Die KI wählt die Phase in Woche 1 nach Trainingsstand und Testergebnis.
 const CYCLE_PHASES = ['Grundlagenphase', 'Aufbauphase', 'Intensivierungsphase', 'Leistungsphase'];
-function cyclePhaseFor(cycle: number): string {
-  return CYCLE_PHASES[(cycle - 1) % CYCLE_PHASES.length];
-}
 
 function str(v: unknown, max: number): string {
   return String(v === undefined || v === null ? '' : v).trim().slice(0, max);
@@ -175,20 +172,28 @@ Zusatzregeln, weil der Athlet Dinge ausgeschlossen hat ("goal.excludes"):
 
 const CYCLE_RULES = `
 
-Zusatzregeln für den Langzeitaufbau über mehrere Zyklen ("cycle", "cycle_phase"):
-- Der Plan folgt den klassischen Trainingsphasen. "cycle" ist die Nummer des 4-Wochen-Zyklus, "cycle_phase" seine Phase. Gibt es "schedule" mit höchstens 84 Tagen bis zum Termin, hat dessen "phase" Vorrang.
-- Grundlagenphase (allgemeine Vorbereitung): Technik und Bewegungsqualität, Kraftausdauer und Muskelaufbau (z. B. 3 bis 4 Sätze mit 8 bis 12 Wiederholungen, RPE 6 bis 7), aerobe Grundlage mit viel lockerem Umfang, Beweglichkeit.
-- Aufbauphase (spezielle Vorbereitung): Grundkraft mit schwereren Lasten (z. B. 4 bis 5 Sätze mit 4 bis 6 Wiederholungen, RPE 7 bis 8), Schwellen- und Intervalltraining, Schwächen gezielt angehen.
-- Intensivierungsphase: zielspezifisch, Maximal- und Schnellkraft (z. B. 3 bis 5 Wiederholungen, einzelne schwere Sätze mit 1 bis 3, RPE 8 bis 9), wettkampfnahe Workouts, Tempo und kurze intensive Intervalle. Der Umfang sinkt, die Intensität steigt.
-- Leistungsphase: Leistung abrufen, Zieldisziplinen und Benchmarks im Vordergrund, Woche 4 mit Entlastung und einem umfassenden Test aller Zielanforderungen. Danach beginnt mit Zyklus 5 eine neue Runde mit der Grundlagenphase auf höherem Niveau.
+Zusatzregeln für den Langzeitaufbau über mehrere Zyklen ("cycle", "phase_history", "previous_cycle"):
+- Jeder 4-Wochen-Zyklus hat eine klassische Trainingsphase. Steht im übergebenen "outline" bereits "phase", gilt sie für den ganzen Zyklus. Sonst wählst du sie in Woche 1 nach den Regeln unten und gibst sie im Feld "phase" des "outline" zurück.
+- Die Phasen:
+  Grundlagenphase (allgemeine Vorbereitung): Technik und Bewegungsqualität, Kraftausdauer und Muskelaufbau (z. B. 3 bis 4 Sätze mit 8 bis 12 Wiederholungen, RPE 6 bis 7), aerobe Grundlage mit viel lockerem Umfang, Beweglichkeit.
+  Aufbauphase (spezielle Vorbereitung): Grundkraft mit schwereren Lasten (z. B. 4 bis 5 Sätze mit 4 bis 6 Wiederholungen, RPE 7 bis 8), Schwellen- und Intervalltraining, Schwächen gezielt angehen.
+  Intensivierungsphase: zielspezifisch, Maximal- und Schnellkraft (z. B. 3 bis 5 Wiederholungen, einzelne schwere Sätze mit 1 bis 3, RPE 8 bis 9), wettkampfnahe Workouts, Tempo und kurze intensive Intervalle. Der Umfang sinkt, die Intensität steigt.
+  Leistungsphase (Formhöhepunkt): Leistung abrufen, Zieldisziplinen und Benchmarks im Vordergrund, Umfang deutlich reduziert, Intensität hoch.
+- Erster Zyklus (kein "phase_history"): Einsteiger (wenig oder keine Erfahrung, Fitnesslevel "Keine" oder niedrig, keine Bestwerte) beginnen mit der Grundlagenphase. Erfahrene Athleten mit solider Basis beginnen mit der Aufbauphase.
+- Folgezyklen: "phase_history" nennt die Phasen der bisherigen Zyklen, die letzte zuletzt. Prüfe den Test aus Woche 4 des letzten Zyklus ("previous_results", "latest_test"):
+  Gut (Zielwerte erreicht oder klarer Fortschritt, Erholung in Ordnung): nächste Phase in der Reihenfolge Grundlage, Aufbau, Intensivierung.
+  Nicht gut (kaum Fortschritt, Ziel deutlich verfehlt oder hohe Erschöpfung, "session_rpe" im Schnitt ab 8,5): dieselbe Phase noch einmal, mit neuen Übungsvarianten und mehr Anteil für die schwächsten Fähigkeiten. Höchstens zweimal hintereinander dieselbe Phase, danach weiter.
+  Einsteiger bleiben mindestens 2 Zyklen in der Grundlagenphase.
+- Ohne Zieltermin (kein "schedule") gibt es keine Leistungsphase: nach der Intensivierungsphase folgt wieder die Aufbauphase auf höherem Niveau, Aufbau und Intensivierung wechseln sich dann ab.
+- Mit Zieltermin hat die Terminphase aus "schedule" Vorrang, sobald höchstens 84 Tage bis zum Termin bleiben (Spitzenphase entspricht Intensivierung, Feinschliff und Wettkampfwoche der Leistungsphase). Liegt der Termin weiter weg, gilt die Reihenfolge oben ohne Leistungsphase.
+- Nach einer längeren Pause ("comeback") beginnt der Zyklus mit der Grundlagenphase.
 - Der Wochenaufbau innerhalb des Zyklus (Einstieg, Aufbau, Höhepunkt, Entlastung mit Test) gilt weiter, aber mit den Inhalten der Phase.
-- Nenne die Phase kurz im Feld "focus" der Woche (z. B. "Aufbauphase: Grundkraft und Schwelle").
+- Nenne die Phase kurz im Feld "focus" der Woche (z. B. "Aufbauphase: Grundkraft und Schwelle") und erkläre im "summary" des "outline" in einem Satz, warum diese Phase gewählt wurde.
 - Gibt es "previous_cycle" (Trainingstage des letzten Zyklus mit Titel und Übungen), soll sich der neue Zyklus für den Athleten spürbar neu anfühlen und trotzdem systematisch auf dem letzten aufbauen:
-  Behalte die Kernübungen (Grundübungen, Zieldisziplinen, Testübungen), damit der Fortschritt messbar bleibt, aber ändere Satz- und Wiederholungsschema, Intensität und Tempo passend zur neuen Phase.
+  Behalte die Kernübungen (Grundübungen, Zieldisziplinen, Testübungen), damit der Fortschritt messbar bleibt, aber ändere Satz- und Wiederholungsschema, Intensität und Tempo passend zur Phase.
   Ersetze den Großteil der Hilfs-, Ergänzungs- und Conditioning-Übungen durch gleichwertige Varianten mit demselben Trainingszweck (z. B. Bulgarian Split Squat statt Ausfallschritte, Ring Rows statt Kurzhantelrudern) und nutze neue Workout- und Intervallformen (z. B. EMOM statt AMRAP, Pyramide statt gleicher Intervalle).
   Kein Trainingstag gleicht einem Tag aus "previous_cycle" (gleicher Titel oder fast gleiche Übungsliste). Verteile die Schwerpunkte neu auf die Tage, wenn es sinnvoll ist.
-  Woche 1 beginnt nicht wieder auf dem Niveau des alten Zyklus, sondern baut auf den Ergebnissen in "previous_results" auf.
-  Erkläre im "summary" des "outline" in einem Satz die neue Phase und was neu ist.`;
+  Woche 1 beginnt nicht wieder auf dem Niveau des alten Zyklus, sondern baut auf den Ergebnissen in "previous_results" auf.`;
 
 const ACTIVITY_RULES = `
 
@@ -222,6 +227,7 @@ const PLAN_TOOL = {
           progression: { type: 'string' },
           recovery: { type: 'string' },
           goal_analysis: { type: 'string' },
+          phase: { type: 'string', enum: CYCLE_PHASES },
         },
       },
       compatibility: {
@@ -554,6 +560,10 @@ Deno.serve(async (req: Request) => {
   const cycleNo = Math.round(Number(body && body.cycle));
   const cycle = Number.isFinite(cycleNo) && cycleNo >= 1 && cycleNo <= 200 ? cycleNo : 0;
   const pc = body && body.previous_cycle ? body.previous_cycle : null;
+  const phaseHistory: string[] = (pc && Array.isArray(pc.phases) ? pc.phases : [])
+    .slice(-8)
+    .map((x: any) => str(x, 30))
+    .filter((x: string) => CYCLE_PHASES.indexOf(x) >= 0);
   const previousCycle =
     cycle > 1 && pc && Array.isArray(pc.days) && pc.days.length > 0
       ? {
@@ -677,7 +687,9 @@ Deno.serve(async (req: Request) => {
   }
   if (cycle > 0) {
     payload.cycle = cycle;
-    payload.cycle_phase = cyclePhaseFor(cycle);
+  }
+  if (phaseHistory.length > 0) {
+    payload.phase_history = phaseHistory;
   }
   if (previousCycle) {
     payload.previous_cycle = previousCycle;
@@ -859,6 +871,7 @@ Deno.serve(async (req: Request) => {
       progression: str(o.progression, 240),
       recovery: str(o.recovery, 300),
       goal_analysis: str(o.goal_analysis, 500),
+      phase: CYCLE_PHASES.indexOf(o.phase) >= 0 ? o.phase : undefined,
     };
   }
 
