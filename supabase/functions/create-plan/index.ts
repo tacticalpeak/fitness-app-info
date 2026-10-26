@@ -62,6 +62,7 @@ Aufbau des 4-Wochen-Zyklus:
 - Woche 2: Aufbau, Volumen und Intensität steigen leicht.
 - Woche 3: Höhepunkt des Zyklus, höchste Belastung.
 - Woche 4: Entlastung (etwa 60 bis 70 % des Volumens) plus ein Test, der zu den Zielanforderungen passt (z. B. Zeitlauf, Maximalkraft-Test, Benchmark-Workout).
+- Im Feld "why" der Woche erklärst du dem Athleten in 1 bis 2 kurzen, einfachen Sätzen, was sich gegenüber der Vorwoche ändert (z. B. gleiche Übungen, mehr Wiederholungen oder Gewicht) und welches Ziel damit verfolgt wird. In Woche 1 erklärst du den Einstieg.
 
 Regeln:
 - Erstelle genau so viele Trainingstage, wie im Profil unter "daysPerWeek" steht (höchstens 6). Gibt es "shared_training", ist "daysPerWeek" bereits der Anteil dieses Ziels an der gemeinsamen Woche.
@@ -242,6 +243,7 @@ const PLAN_TOOL = {
         properties: {
           week: { type: 'integer' },
           focus: { type: 'string' },
+          why: { type: 'string' },
           days: {
             type: 'array',
             items: {
@@ -857,6 +859,7 @@ Deno.serve(async (req: Request) => {
     week: {
       week: week,
       focus: str(parsed.week.focus, 120),
+      why: str(parsed.week.why, 300),
       days: days,
     },
     library: library,
