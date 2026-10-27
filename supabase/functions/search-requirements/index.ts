@@ -269,6 +269,107 @@ Antworte ausschließlich mit einem JSON-Objekt, ohne Text davor oder danach und 
   "source_urls": ["https://..."]
 }`;
 
+// Offizielle körperliche Standards von The Tactical Games Europe (thetacticalgames.eu/de/koerperliche-standards, Stand 10/2026).
+// Fest hinterlegt, damit sie unabhängig von der Websuche immer genau übernommen werden.
+const TTG_SOURCE = { title: 'The Tactical Games Europe – Körperliche Standards', url: 'https://thetacticalgames.eu/de/koerperliche-standards' };
+
+type TtgProfile = {
+  bag: number; bagHeavy: number; bagHeavyReps: number; barCm: number; sandball: number;
+  duffelThrow: number; duffelMax: number; can: number; rope: number; ropeM: string; axle: number;
+  farmer: number; ruckLong: string; ruckShort: string; kb: number; sandbell: number; tombstone: number;
+};
+
+const TTG_PROFILES: Record<string, TtgProfile> = {
+  eliteH: { bag: 91, bagHeavy: 113, bagHeavyReps: 5, barCm: 127, sandball: 45, duffelThrow: 54, duffelMax: 54, can: 45, rope: 15, ropeM: '4,6', axle: 98, farmer: 181, ruckLong: '18', ruckShort: '27', kb: 40, sandbell: 20, tombstone: 91 },
+  tacticalH: { bag: 68, bagHeavy: 91, bagHeavyReps: 5, barCm: 127, sandball: 36, duffelThrow: 36, duffelMax: 36, can: 39, rope: 10, ropeM: '4,6', axle: 75, farmer: 136, ruckLong: '14', ruckShort: '18', kb: 32, sandbell: 16, tombstone: 75 },
+  interH: { bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 127, sandball: 27, duffelThrow: 27, duffelMax: 27, can: 25, rope: 7, ropeM: '4,6', axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kb: 16, sandbell: 12, tombstone: 45 },
+  eliteD: { bag: 57, bagHeavy: 68, bagHeavyReps: 3, barCm: 114, sandball: 36, duffelThrow: 27, duffelMax: 36, can: 34, rope: 12, ropeM: '4,6', axle: 61, farmer: 118, ruckLong: '9', ruckShort: '18', kb: 24, sandbell: 16, tombstone: 61 },
+  tacticalD: { bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 114, sandball: 27, duffelThrow: 18, duffelMax: 27, can: 25, rope: 5, ropeM: '4,6', axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kb: 16, sandbell: 12, tombstone: 45 },
+  interD: { bag: 36, bagHeavy: 45, bagHeavyReps: 3, barCm: 114, sandball: 18, duffelThrow: 14, duffelMax: 18, can: 20, rope: 5, ropeM: '3,7', axle: 30, farmer: 64, ruckLong: '4,5', ruckShort: '9', kb: 12, sandbell: 12, tombstone: 41 },
+};
+
+// Divisionen laut Veranstalter (40+ entspricht Tactical, 50+ und 60+ Herren entsprechen Intermediate)
+const TTG_DIVISIONS: { name: string; male: boolean; profile: string; noSandbell?: boolean }[] = [
+  { name: 'Elite Herren', male: true, profile: 'eliteH' },
+  { name: 'Tactical Herren', male: true, profile: 'tacticalH' },
+  { name: 'Intermediate Herren', male: true, profile: 'interH' },
+  { name: '40+ Herren', male: true, profile: 'tacticalH' },
+  { name: '50+ Herren', male: true, profile: 'interH' },
+  { name: '60+ Herren', male: true, profile: 'interH' },
+  { name: 'Elite Damen', male: false, profile: 'eliteD' },
+  { name: 'Tactical Damen', male: false, profile: 'tacticalD' },
+  { name: 'Intermediate Damen', male: false, profile: 'interD' },
+  { name: '40+ Damen', male: false, profile: 'tacticalD' },
+  { name: '50+ Damen', male: false, profile: 'interD', noSandbell: true },
+];
+
+// Nur The Tactical Games (nicht CrossFit o. Ä.)
+function isTacticalGames(text: string): boolean {
+  return /tactical\s*games|\bttg\b|taktische\s*spiele/i.test(text);
+}
+
+// Division aus Titel, Zusatzinfo oder gewählter Variante erkennen; null, wenn keine genannt ist
+function ttgDivision(text: string, sex: string) {
+  const t = text.toLowerCase().replace(/tactical\s*games|\bttg\b|taktische\s*spiele/g, ' ');
+  let level = '';
+  if (/\b60\s*\+|masters?\s*60|\b60\s*plus/.test(t)) level = '60+';
+  else if (/\b50\s*\+|masters?\s*50|\b50\s*plus/.test(t)) level = '50+';
+  else if (/\b40\s*\+|masters?\s*40|\b40\s*plus/.test(t)) level = '40+';
+  else if (/\belite\b/.test(t)) level = 'Elite';
+  else if (/\bintermediate\b/.test(t)) level = 'Intermediate';
+  else if (/\btactical\b/.test(t)) level = 'Tactical';
+  if (level === '') return null;
+  let male: boolean | null = null;
+  if (/damen|frauen|\bwomen\b|\bfemale\b|weiblich/.test(t)) male = false;
+  else if (/herren|männer|\bmen\b|\bmale\b|männlich/.test(t)) male = true;
+  else if (sex === 'Männlich') male = true;
+  else if (sex === 'Weiblich') male = false;
+  if (male === null) return null;
+  return TTG_DIVISIONS.find((d) => d.male === male && d.name.startsWith(level + ' ')) ?? null;
+}
+
+// Auswahl der Divisionen, passend zum Geschlecht
+function ttgVariants(sex: string) {
+  return TTG_DIVISIONS
+    .filter((d) => sex === 'Männlich' ? d.male : sex === 'Weiblich' ? !d.male : true)
+    .map((d) => {
+      const p = TTG_PROFILES[d.profile];
+      return {
+        name: d.name,
+        description: 'Strongman Bag bis ' + p.bagHeavy + ' kg, Kettlebell bis ' + p.kb + ' kg, Farmer Carry ' + p.farmer + ' kg gesamt.',
+      };
+    });
+}
+
+// Feste Anforderungen einer Division
+function ttgRequirements(div: { profile: string; noSandbell?: boolean }) {
+  const p = TTG_PROFILES[div.profile];
+  const list = [
+    { name: 'Standard: Strongman Bag tragen', target: p.bag + ' kg über 91 m (kumulativ) tragen und 1:30 min am Stück statisch halten' },
+    { name: 'Standard: Strongman Bag über die Stange', target: p.bagHeavy + ' kg × ' + p.bagHeavyReps + ' und ' + p.bag + ' kg × 10 Wdh. am Stück, Stange ' + p.barCm + ' cm' },
+    { name: 'Standard: Sandball über die Stange', target: p.sandball + ' kg über eine 1,83 m hohe Stange' },
+    { name: 'Standard: Duffel Bag', target: p.duffelThrow + ' kg auf 1,8 m Höhe werfen, Clean & Press' + (p.duffelMax > p.duffelThrow ? ' (Duffel bis ' + p.duffelMax + ' kg)' : '') },
+    { name: 'Standard: Benzinkanister', target: 'Farmer- oder Suitcase-Carry mit bis ' + p.can + ' kg' },
+    { name: 'Standard: Seilklettern', target: p.rope + ' Wdh. am ' + p.ropeM + '-m-Seil (kumulativ)' },
+    { name: 'Standard: Axle Bar', target: p.axle + ' kg über Kopf drücken und mind. 9 m über Kopf gehen, 2–3× pro Runde' },
+    { name: 'Standard: Farmer Carry', target: p.farmer + ' kg gesamt, mind. 18 m hin und 18 m zurück, bis 4× pro Stage' },
+    { name: 'Standard: Rucking', target: p.ruckLong + ' kg über 9,7 km bzw. ' + p.ruckShort + ' kg über 6,4 km' },
+    { name: 'Standard: Kettlebell', target: 'bis ' + p.kb + ' kg' },
+    { name: 'Standard: Tombstone', target: 'bis ' + p.tombstone + ' kg' },
+  ];
+  if (!div.noSandbell) {
+    list.push({ name: 'Standard: Sandbell', target: 'bis ' + p.sandbell + ' kg' });
+  }
+  return list;
+}
+
+// Text für die KI: diese Standards sind fest hinterlegt und sollen nicht wiederholt werden
+function ttgPromptText(divName: string, reqs: { name: string; target: string }[]): string {
+  return '\nOffizielle körperliche Standards der Division ' + divName + ' (fest hinterlegt, nicht wiederholen):\n' +
+    reqs.map((r) => '- ' + r.name.replace('Standard: ', '') + ': ' + r.target).join('\n') +
+    '\nNenne höchstens 10 weitere Einträge: veröffentlichte Floater, weitere Standards (z. B. Pflichtgewicht des Plattenträgers) und häufige Übungen aus früheren Stages.';
+}
+
 // Regel zum Geschlecht des Athleten
 function genderRule(sex: string): string {
   if (sex === 'Männlich') {
@@ -457,11 +558,26 @@ Deno.serve(async (req: Request) => {
   const obstacle = !official && !skill && !stages && isObstacleRace(event + ' ' + hint + ' ' + variant);
   // Übungsziel (jede Art von Übung): per Erkennung oder später, wenn die KI es als Übungsziel meldet
   let exercise = !official && !obstacle && !stages && (skill || isExerciseGoal(event + ' ' + hint));
+
+  // The Tactical Games: Divisionen und offizielle Standards sind fest hinterlegt
+  const ttg = stages && isTacticalGames(event + ' ' + hint + ' ' + variant);
+  const ttgDiv = ttg ? (ttgDivision(event + ' ' + variant, sex) ?? ttgDivision(hint, sex)) : null;
+  const ttgReqs = ttgDiv ? ttgRequirements(ttgDiv) : [];
+  if (ttg && !ttgDiv && variant === '') {
+    return json({
+      variants: ttgVariants(sex),
+      requirements: [],
+      sources: [],
+      category: 'Taktische Spiele',
+      summary: 'Erkannt als: The Tactical Games. Wähle deine Division.',
+    });
+  }
   let switched = false;
   const today = new Date().toISOString().slice(0, 10);
   const buildUserText = () =>
     (exercise ? 'Übungsziel: ' : 'Veranstaltung: ') + event + (hint ? '\nZusatzinfo: ' + hint : '') +
-    (variant ? '\nGewählte Variante: ' + variant : '') +
+    (variant ? '\nGewählte Variante: ' + variant : ttgDiv ? '\nGewählte Variante: ' + ttgDiv.name : '') +
+    (ttgDiv ? ttgPromptText(ttgDiv.name, ttgReqs) : '') +
     '\n' + genderRule(sex) +
     '\nHeutiges Datum: ' + today;
 
@@ -573,7 +689,7 @@ Deno.serve(async (req: Request) => {
   // Mehrere Varianten und noch keine gewählt: Auswahl zurückgeben
   const deep = official || obstacle || exercise || stages;
 
-  if (!official && !exercise && variant === '' && parsed && Array.isArray(parsed.variants) && parsed.variants.length >= 2) {
+  if (!official && !exercise && variant === '' && !ttgDiv && parsed && Array.isArray(parsed.variants) && parsed.variants.length >= 2) {
     const variants = parsed.variants
       .filter((v: any) => v && v.name)
       .slice(0, 8)
@@ -592,17 +708,23 @@ Deno.serve(async (req: Request) => {
       });
     }
   }
-  if (!parsed || parsed.found !== true || !Array.isArray(parsed.requirements)) {
+  // Bei The Tactical Games mit Division gibt es die festen Standards auch ohne Suchergebnis
+  const aiOk = parsed && parsed.found === true && Array.isArray(parsed.requirements);
+  if (!aiOk && !ttgDiv) {
     return json(notFound);
   }
+  if (!aiOk) {
+    parsed = { requirements: [] };
+  }
 
-  // Wettkämpfe mit geheimen Stages: alle Floater, Standards und wiederkehrenden Übungen (plus 3 Erfahrungswerte)
-  const maxReq = stages ? 22 : deep ? 10 : 15;
-  const requirements = parsed.requirements
+  // Wettkämpfe mit geheimen Stages: alle Floater, Standards und wiederkehrenden Übungen (plus 3 Erfahrungswerte);
+  // bei The Tactical Games zuerst die festen Standards, dann höchstens 10 weitere aus der Suche
+  const maxReq = ttgDiv ? 10 : stages ? 22 : deep ? 10 : 15;
+  const requirements = ttgReqs.concat(parsed.requirements
     .filter((r: any) => r && r.name && r.target)
     .filter((r: any) => genderOk(sex, String(r.name), String(r.target)))
     .slice(0, maxReq)
-    .map((r: any) => ({ name: String(r.name).slice(0, 120), target: String(r.target).slice(0, 200) }));
+    .map((r: any) => ({ name: String(r.name).slice(0, 120), target: String(r.target).slice(0, 200) })));
 
   if (requirements.length === 0) {
     return json(notFound);
@@ -633,9 +755,13 @@ Deno.serve(async (req: Request) => {
     .filter((u: string) => seenUrls.has(u))
     .slice(0, 5)
     .map((u: string) => ({ title: seenUrls.get(u) as string, url: u }));
+  if (ttgDiv) {
+    sources.unshift(TTG_SOURCE);
+  }
 
-  const fullName = parsed.event_full_name ? String(parsed.event_full_name) : event;
-  const summaryText = parsed.summary ? String(parsed.summary) : '';
+  const fullName = ttgDiv ? 'The Tactical Games – ' + ttgDiv.name : parsed.event_full_name ? String(parsed.event_full_name) : event;
+  const summaryText = (parsed.summary ? String(parsed.summary) : '') +
+    (ttgDiv ? ' Die offiziellen körperlichen Standards des Veranstalters sind genau übernommen.' : '');
 
   const summaryFull = official
     ? ('Erkannt als: ' + fullName + '. ' + summaryText + ' ' + OFFICIAL_NOTICE).trim()
@@ -653,7 +779,7 @@ Deno.serve(async (req: Request) => {
           ? 'Hindernislauf'
           : parsed.category
             ? String(parsed.category).slice(0, 40)
-            : '',
+            : ttg ? 'Taktische Spiele' : '',
     summary: summaryFull,
     requirements: requirements,
     sources: sources,
