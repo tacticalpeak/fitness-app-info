@@ -281,7 +281,7 @@ type TtgProfile = {
   male: boolean;
   // Körperliche Fähigkeiten
   bag: number; bagHeavy: number; bagHeavyReps: number; barCm: number; sandball: number;
-  duffelThrow: number; can: number; rope: number; ropeM: string; axle: number;
+  duffelThrow: number; duffelMax: number; can: number; rope: number; ropeM: string; axle: number;
   farmer: number; ruckLong: string; ruckShort: string; kbToss: number; kbBar: string;
   kb: number; sandbell: number; tombstone: number;
   // Floater
@@ -291,37 +291,37 @@ type TtgProfile = {
 
 const TTG_PROFILES: Record<string, TtgProfile> = {
   eliteH: {
-    male: true, bag: 91, bagHeavy: 113, bagHeavyReps: 5, barCm: 127, sandball: 45, duffelThrow: 54, can: 45, rope: 15, ropeM: '4,6',
+    male: true, bag: 91, bagHeavy: 113, bagHeavyReps: 5, barCm: 127, sandball: 45, duffelThrow: 54, duffelMax: 54, can: 45, rope: 15, ropeM: '4,6',
     axle: 98, farmer: 181, ruckLong: '18', ruckShort: '27', kbToss: 18, kbBar: '3,35', kb: 40, sandbell: 20, tombstone: 91,
     sled: '4 × 20-kg-Scheiben', weave: 45, bagTime: 68, lowWeave: 68, burpees: 30, gap: '1,83',
     burnPit: '57, 68 und 91 kg', cans: '2 × 32 kg', canBars: '61, 86, 112, 137 und 163 cm', duffels: '2 × 36 kg',
   },
   tacticalH: {
-    male: true, bag: 68, bagHeavy: 91, bagHeavyReps: 5, barCm: 127, sandball: 36, duffelThrow: 36, can: 39, rope: 10, ropeM: '4,6',
+    male: true, bag: 68, bagHeavy: 91, bagHeavyReps: 5, barCm: 127, sandball: 36, duffelThrow: 36, duffelMax: 36, can: 39, rope: 10, ropeM: '4,6',
     axle: 75, farmer: 136, ruckLong: '14', ruckShort: '18', kbToss: 14, kbBar: '3,35', kb: 32, sandbell: 16, tombstone: 75,
     sled: '3 × 20-kg-Scheiben', weave: 36, bagTime: 57, lowWeave: 57, burpees: 25, gap: '1,83',
     burnPit: '45, 57 und 68 kg', cans: '2 × 25 kg', canBars: '61, 86, 112, 137 und 163 cm', duffels: '2 × 27 kg',
   },
   interH: {
-    male: true, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 127, sandball: 27, duffelThrow: 27, can: 25, rope: 7, ropeM: '4,6',
+    male: true, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 127, sandball: 27, duffelThrow: 27, duffelMax: 27, can: 25, rope: 7, ropeM: '4,6',
     axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kbToss: 11, kbBar: '3,35', kb: 16, sandbell: 12, tombstone: 45,
     sled: '2 × 20-kg-Scheiben', weave: 27, bagTime: 45, lowWeave: 45, burpees: 20, gap: '1,52',
     burnPit: '27, 36 und 45 kg', cans: '2 × 20 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 18 kg',
   },
   eliteD: {
-    male: false, bag: 57, bagHeavy: 68, bagHeavyReps: 3, barCm: 114, sandball: 36, duffelThrow: 27, can: 34, rope: 12, ropeM: '4,6',
+    male: false, bag: 57, bagHeavy: 68, bagHeavyReps: 3, barCm: 114, sandball: 36, duffelThrow: 27, duffelMax: 36, can: 34, rope: 12, ropeM: '4,6',
     axle: 61, farmer: 118, ruckLong: '9', ruckShort: '18', kbToss: 14, kbBar: '2,74', kb: 24, sandbell: 16, tombstone: 61,
     sled: '3 × 20-kg-Scheiben', weave: 36, bagTime: 45, lowWeave: 57, burpees: 30, gap: '1,52',
     burnPit: '45, 57 und 68 kg', cans: '2 × 25 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 27 kg',
   },
   tacticalD: {
-    male: false, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 114, sandball: 27, duffelThrow: 18, can: 25, rope: 5, ropeM: '4,6',
+    male: false, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 114, sandball: 27, duffelThrow: 18, duffelMax: 27, can: 25, rope: 5, ropeM: '4,6',
     axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kbToss: 11, kbBar: '2,74', kb: 16, sandbell: 12, tombstone: 45,
     sled: '2 × 20-kg-Scheiben', weave: 27, bagTime: 36, lowWeave: 36, burpees: 25, gap: '1,52',
     burnPit: '36, 45 und 57 kg', cans: '2 × 20 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 18 kg',
   },
   interD: {
-    male: false, bag: 36, bagHeavy: 45, bagHeavyReps: 3, barCm: 114, sandball: 18, duffelThrow: 14, can: 20, rope: 5, ropeM: '3,7',
+    male: false, bag: 36, bagHeavy: 45, bagHeavyReps: 3, barCm: 114, sandball: 18, duffelThrow: 14, duffelMax: 18, can: 20, rope: 5, ropeM: '3,7',
     axle: 30, farmer: 64, ruckLong: '4,5', ruckShort: '9', kbToss: 9, kbBar: '2,74', kb: 12, sandbell: 12, tombstone: 41,
     sled: '20- und 11-kg-Scheibe', weave: 18, bagTime: 27, lowWeave: 27, burpees: 20, gap: '1,52',
     burnPit: '18, 27 und 36 kg', cans: '2 × 16 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '1 × 18 kg',
@@ -391,11 +391,11 @@ function ttgRequirements(div: { profile: string; noSandbell?: boolean }) {
     { name: 'Standard: Strongman Bag tragen', target: p.bag + ' kg über 91 m (kumulativ) tragen und 1:30 min am Stück statisch halten' },
     { name: 'Standard: Strongman Bag über die Stange', target: p.bagHeavy + ' kg × ' + p.bagHeavyReps + ' und ' + p.bag + ' kg × 10 Wdh. am Stück, Stange ' + p.barCm + ' cm' },
     { name: 'Standard: Sandball über die Stange', target: p.sandball + ' kg über eine 1,83 m hohe Stange' },
-    { name: 'Standard: Duffel Bag', target: p.duffelThrow + ' kg auf 1,8 m Höhe werfen, Clean & Press, über Kopf, Schulter und seitlich tragen' },
+    { name: 'Standard: Duffel Bag', target: p.duffelThrow + ' kg auf 1,8 m Höhe werfen, Clean & Press, über Kopf, Schulter und seitlich tragen, Duffel bis ' + p.duffelMax + ' kg' },
     { name: 'Standard: Benzinkanister', target: 'Farmer- oder Suitcase-Carry mit ' + p.can + ' kg, auch über und unter Hindernisse' },
     { name: 'Standard: Seilklettern', target: p.rope + ' Wdh. am ' + p.ropeM + '-m-Seil im Lauf eines Workouts' },
-    { name: 'Standard: Axle Bar', target: p.axle + ' kg umsetzen, über Kopf drücken und mind. 9 m über Kopf gehen, 2–3× pro Runde' },
-    { name: 'Standard: Farmer Carry', target: p.farmer + ' kg gesamt, mind. 18 m hin und 18 m zurück, bis 4× pro Stage' },
+    { name: 'Standard: Axle Bar', target: p.axle + ' kg umsetzen, über Kopf drücken und mind. 9 m über Kopf gehen, 2–3× pro Runde, auch Zercher-Carry' },
+    { name: 'Standard: Farmer Carry', target: p.farmer + ' kg gesamt als Farmer- oder Suitcase-Carry, mind. 18 m hin und 18 m zurück, bis 4× pro Stage' },
     { name: 'Standard: Rucking', target: p.ruckLong + ' kg über 9,7 km bzw. ' + p.ruckShort + ' kg über 6,4 km' },
     { name: 'Standard: Kettlebell', target: p.kbToss + ' kg über eine ' + p.kbBar + ' m hohe Stange werfen; ' + kbMax },
     { name: 'Floater 1: Max Output C2 Ergometer', target: '90 s maximale Kalorien auf Row-, Bike- oder SkiErg' },
@@ -411,7 +411,7 @@ function ttgRequirements(div: { profile: string; noSandbell?: boolean }) {
     { name: 'Floater 11: Double Duffel Shuffle', target: '90 s maximale Strecke, ' + p.duffels + ' Duffel am Boden ziehen' },
     { name: 'Floater 12: Max Shuttle Runs', target: '90 s maximale Pendelläufe über je 7,6 m' },
     { name: 'Häufig: Laufen im Plattenträger', target: 'mind. 400 m am Stück ohne Pause (Trainingstipp des Veranstalters)' },
-    { name: 'Häufig: Schießen unter Belastung', target: 'Schießen direkt nach körperlicher Anstrengung, Wechsel Gewehr und Pistole im Plattenträger' },
+    { name: 'Häufig: Schießen unter Belastung', target: 'Schießen direkt nach Belastung, Wechsel Gewehr/Pistole im Plattenträger; 12 Schieß-Stages, je 60–90 s' },
   ];
 }
 
