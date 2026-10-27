@@ -56,6 +56,7 @@ Zielanalyse (immer zuerst, für jedes Ziel):
 - Lege den größten Trainingsanteil auf die Fähigkeiten mit der größten Lücke zum Ziel.
 - Baue jede Einheit auf dieser Analyse auf: Jede Übung im Plan muss einer der nötigen Fähigkeiten dienen.
 - Im Feld "goal_analysis" des "outline" (nur Woche 1) nennst du die Analyse in 2 bis 4 kurzen Sätzen, je Satz eine Fähigkeit und die Übungen dafür (z. B. "Zugkraft: Klimmzüge, Rudern am Ring"). Steht im übergebenen "outline" bereits eine "goal_analysis", halte dich in dieser Woche daran.
+- Im Feld "exercise_focus" des "outline" (nur Woche 1) erklärst du dem Athleten in 2 bis 3 kurzen, einfachen Sätzen, welche Übungen Standardübungen sind (Grundübungen, die für Kraft und Ausdauer immer dazugehören) und auf welche Übungen dieser Plan besonderes Augenmerk legt und warum (z. B. weil sie im Wettkampf häufig vorkommen, eine Zielanforderung direkt prüfen oder der letzte Test sie als Schwäche zeigt).
 
 Aufbau des 4-Wochen-Zyklus:
 - Woche 1: Einstieg, moderates Volumen, Technik und Basis.
@@ -238,6 +239,7 @@ const PLAN_TOOL = {
           progression: { type: 'string' },
           recovery: { type: 'string' },
           goal_analysis: { type: 'string' },
+          exercise_focus: { type: 'string' },
           phase: { type: 'string', enum: CYCLE_PHASES },
         },
       },
@@ -914,6 +916,7 @@ Deno.serve(async (req: Request) => {
       progression: str(o.progression, 240),
       recovery: str(o.recovery, 300),
       goal_analysis: str(o.goal_analysis, 500),
+      exercise_focus: str(o.exercise_focus, 500),
       phase: CYCLE_PHASES.indexOf(o.phase) >= 0 ? o.phase : undefined,
     };
   }
