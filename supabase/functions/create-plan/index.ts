@@ -491,7 +491,7 @@ Deno.serve(async (req: Request) => {
   const reqIn: any[] = Array.isArray(goalIn.requirements) ? goalIn.requirements : [];
   const requirements = reqIn
     .filter((r: any) => r && r.name)
-    .slice(0, 15)
+    .slice(0, 25)
     .map((r: any) => ({ name: str(r.name, 120), target: str(r.target, 200) }));
   if (goalTitle === '' || requirements.length === 0) {
     return json({ error: 'Ziel mit Anforderungen fehlt' }, 400);
