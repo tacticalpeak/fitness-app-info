@@ -78,6 +78,7 @@ Regeln:
 - Laufeinheiten gibst du über Dauer, Distanz und Tempo oder Herzfrequenzbereich an (z. B. "Tempo 5:45 min/km" oder "locker, RPE 4"), abgeleitet aus der 5-km-Zeit, falls vorhanden.
 - Plane konservativ. Bei Einsteigern weniger Volumen, einfachere Übungen und Skalierungen.
 - Berücksichtige Einschränkungen und Verletzungen: meide belastende Übungen oder ersetze sie, und weise in "note" darauf hin.
+- Gehe wie ein Personal Coach auf den Athleten ein: "session_minutes" ist die Zeit pro Training, "duration_min" (inklusive Aufwärmen und Cooldown) darf sie nicht überschreiten. "daily_life" beschreibt den Alltag: bei Schichtdienst oder wechselnden Zeiten kompakte, flexible Einheiten; bei einem körperlich aktiven Job die Zusatzbelastung (v. a. Beine und Rücken) einrechnen und das Volumen etwas niedriger ansetzen. "what_worked" nennt, was dem Athleten früher geholfen hat: greife es auf, wenn es zum Ziel passt. "favorite_exercises" setzt du bevorzugt ein, wenn sie dem Ziel dienen. "disliked_exercises" meidest du und ersetzt sie durch gleichwertige Übungen; nur wenn eine davon Test- oder Wettkampfdisziplin des Ziels ist, bleibt sie im Plan, und du erklärst in "note" kurz, warum.
 - Gib keine medizinischen Ratschläge und keine Diagnosen.
 - Jede Übung hat einen "key" in snake_case ohne Umlaute (z. B. "back_squat"). Verwende für dieselbe Übung immer denselben key.
 - Übungen, deren key in "known_exercises" steht, erscheinen NICHT noch einmal in "library". Alle anderen Übungen beschreibst du in "library".
@@ -528,6 +529,11 @@ Deno.serve(async (req: Request) => {
     best_half_marathon: str(p.runHalf, 10),
     weekly_km: str(p.weeklyKm, 5),
     longest_run_km: str(p.longRun, 5),
+    session_minutes: str(p.sessionMinutes, 10),
+    daily_life: str(p.dailyLife, 40),
+    what_worked: str(p.whatWorked, 300),
+    favorite_exercises: str(p.favExercises, 200),
+    disliked_exercises: str(p.dislikedExercises, 200),
   };
 
   const known: string[] = (Array.isArray(body.known_exercises) ? body.known_exercises : [])
