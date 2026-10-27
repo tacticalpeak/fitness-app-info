@@ -269,23 +269,63 @@ Antworte ausschließlich mit einem JSON-Objekt, ohne Text davor oder danach und 
   "source_urls": ["https://..."]
 }`;
 
-// Offizielle körperliche Standards von The Tactical Games Europe (thetacticalgames.eu/de/koerperliche-standards, Stand 10/2026).
-// Fest hinterlegt, damit sie unabhängig von der Websuche immer genau übernommen werden.
-const TTG_SOURCE = { title: 'The Tactical Games Europe – Körperliche Standards', url: 'https://thetacticalgames.eu/de/koerperliche-standards' };
+// Offizielle Standards von The Tactical Games, fest hinterlegt, damit sie unabhängig von der Websuche immer genau übernommen werden.
+// Quellen (Stand 10/2026): Körperliche Standards (thetacticalgames.eu) und veröffentlichte Floater (thetacticalgames.com/competition-standards).
+// Englische Angaben auf kg, m und cm umgerechnet und gerundet.
+const TTG_SOURCES = [
+  { title: 'The Tactical Games Europe – Körperliche Standards', url: 'https://thetacticalgames.eu/de/koerperliche-standards' },
+  { title: 'The Tactical Games – Competition Standards (Floater)', url: 'https://www.thetacticalgames.com/competition-standards' },
+];
 
 type TtgProfile = {
+  male: boolean;
+  // Körperliche Fähigkeiten
   bag: number; bagHeavy: number; bagHeavyReps: number; barCm: number; sandball: number;
-  duffelThrow: number; duffelMax: number; can: number; rope: number; ropeM: string; axle: number;
-  farmer: number; ruckLong: string; ruckShort: string; kb: number; sandbell: number; tombstone: number;
+  duffelThrow: number; can: number; rope: number; ropeM: string; axle: number;
+  farmer: number; ruckLong: string; ruckShort: string; kbToss: number; kbBar: string;
+  kb: number; sandbell: number; tombstone: number;
+  // Floater
+  sled: string; weave: number; bagTime: number; lowWeave: number; burpees: number; gap: string;
+  burnPit: string; cans: string; canBars: string; duffels: string;
 };
 
 const TTG_PROFILES: Record<string, TtgProfile> = {
-  eliteH: { bag: 91, bagHeavy: 113, bagHeavyReps: 5, barCm: 127, sandball: 45, duffelThrow: 54, duffelMax: 54, can: 45, rope: 15, ropeM: '4,6', axle: 98, farmer: 181, ruckLong: '18', ruckShort: '27', kb: 40, sandbell: 20, tombstone: 91 },
-  tacticalH: { bag: 68, bagHeavy: 91, bagHeavyReps: 5, barCm: 127, sandball: 36, duffelThrow: 36, duffelMax: 36, can: 39, rope: 10, ropeM: '4,6', axle: 75, farmer: 136, ruckLong: '14', ruckShort: '18', kb: 32, sandbell: 16, tombstone: 75 },
-  interH: { bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 127, sandball: 27, duffelThrow: 27, duffelMax: 27, can: 25, rope: 7, ropeM: '4,6', axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kb: 16, sandbell: 12, tombstone: 45 },
-  eliteD: { bag: 57, bagHeavy: 68, bagHeavyReps: 3, barCm: 114, sandball: 36, duffelThrow: 27, duffelMax: 36, can: 34, rope: 12, ropeM: '4,6', axle: 61, farmer: 118, ruckLong: '9', ruckShort: '18', kb: 24, sandbell: 16, tombstone: 61 },
-  tacticalD: { bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 114, sandball: 27, duffelThrow: 18, duffelMax: 27, can: 25, rope: 5, ropeM: '4,6', axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kb: 16, sandbell: 12, tombstone: 45 },
-  interD: { bag: 36, bagHeavy: 45, bagHeavyReps: 3, barCm: 114, sandball: 18, duffelThrow: 14, duffelMax: 18, can: 20, rope: 5, ropeM: '3,7', axle: 30, farmer: 64, ruckLong: '4,5', ruckShort: '9', kb: 12, sandbell: 12, tombstone: 41 },
+  eliteH: {
+    male: true, bag: 91, bagHeavy: 113, bagHeavyReps: 5, barCm: 127, sandball: 45, duffelThrow: 54, can: 45, rope: 15, ropeM: '4,6',
+    axle: 98, farmer: 181, ruckLong: '18', ruckShort: '27', kbToss: 18, kbBar: '3,35', kb: 40, sandbell: 20, tombstone: 91,
+    sled: '4 × 20-kg-Scheiben', weave: 45, bagTime: 68, lowWeave: 68, burpees: 30, gap: '1,83',
+    burnPit: '57, 68 und 91 kg', cans: '2 × 32 kg', canBars: '61, 86, 112, 137 und 163 cm', duffels: '2 × 36 kg',
+  },
+  tacticalH: {
+    male: true, bag: 68, bagHeavy: 91, bagHeavyReps: 5, barCm: 127, sandball: 36, duffelThrow: 36, can: 39, rope: 10, ropeM: '4,6',
+    axle: 75, farmer: 136, ruckLong: '14', ruckShort: '18', kbToss: 14, kbBar: '3,35', kb: 32, sandbell: 16, tombstone: 75,
+    sled: '3 × 20-kg-Scheiben', weave: 36, bagTime: 57, lowWeave: 57, burpees: 25, gap: '1,83',
+    burnPit: '45, 57 und 68 kg', cans: '2 × 25 kg', canBars: '61, 86, 112, 137 und 163 cm', duffels: '2 × 27 kg',
+  },
+  interH: {
+    male: true, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 127, sandball: 27, duffelThrow: 27, can: 25, rope: 7, ropeM: '4,6',
+    axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kbToss: 11, kbBar: '3,35', kb: 16, sandbell: 12, tombstone: 45,
+    sled: '2 × 20-kg-Scheiben', weave: 27, bagTime: 45, lowWeave: 45, burpees: 20, gap: '1,52',
+    burnPit: '27, 36 und 45 kg', cans: '2 × 20 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 18 kg',
+  },
+  eliteD: {
+    male: false, bag: 57, bagHeavy: 68, bagHeavyReps: 3, barCm: 114, sandball: 36, duffelThrow: 27, can: 34, rope: 12, ropeM: '4,6',
+    axle: 61, farmer: 118, ruckLong: '9', ruckShort: '18', kbToss: 14, kbBar: '2,74', kb: 24, sandbell: 16, tombstone: 61,
+    sled: '3 × 20-kg-Scheiben', weave: 36, bagTime: 45, lowWeave: 57, burpees: 30, gap: '1,52',
+    burnPit: '45, 57 und 68 kg', cans: '2 × 25 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 27 kg',
+  },
+  tacticalD: {
+    male: false, bag: 45, bagHeavy: 57, bagHeavyReps: 5, barCm: 114, sandball: 27, duffelThrow: 18, can: 25, rope: 5, ropeM: '4,6',
+    axle: 43, farmer: 82, ruckLong: '9', ruckShort: '14', kbToss: 11, kbBar: '2,74', kb: 16, sandbell: 12, tombstone: 45,
+    sled: '2 × 20-kg-Scheiben', weave: 27, bagTime: 36, lowWeave: 36, burpees: 25, gap: '1,52',
+    burnPit: '36, 45 und 57 kg', cans: '2 × 20 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '2 × 18 kg',
+  },
+  interD: {
+    male: false, bag: 36, bagHeavy: 45, bagHeavyReps: 3, barCm: 114, sandball: 18, duffelThrow: 14, can: 20, rope: 5, ropeM: '3,7',
+    axle: 30, farmer: 64, ruckLong: '4,5', ruckShort: '9', kbToss: 9, kbBar: '2,74', kb: 12, sandbell: 12, tombstone: 41,
+    sled: '20- und 11-kg-Scheibe', weave: 18, bagTime: 27, lowWeave: 27, burpees: 20, gap: '1,52',
+    burnPit: '18, 27 und 36 kg', cans: '2 × 16 kg', canBars: '61, 76, 91, 107 und 122 cm', duffels: '1 × 18 kg',
+  },
 };
 
 // Divisionen laut Veranstalter (40+ entspricht Tactical, 50+ und 60+ Herren entsprechen Intermediate)
@@ -341,33 +381,38 @@ function ttgVariants(sex: string) {
     });
 }
 
-// Feste Anforderungen einer Division
+// Feste Anforderungen einer Division: 11 Standards, 12 veröffentlichte Floater und 2 Trainingstipps des Veranstalters (25 Einträge)
 function ttgRequirements(div: { profile: string; noSandbell?: boolean }) {
   const p = TTG_PROFILES[div.profile];
-  const list = [
+  const vest = p.male ? '6,8' : '5,4';
+  const kbMax = 'Kettlebell bis ' + p.kb + ' kg' + (div.noSandbell ? '' : ', Sandbell bis ' + p.sandbell + ' kg') + ', Tombstone bis ' + p.tombstone + ' kg';
+  return [
+    { name: 'Standard: Plattenträger', target: 'Bei allen Floatern Pflicht, mind. ' + vest + ' kg' },
     { name: 'Standard: Strongman Bag tragen', target: p.bag + ' kg über 91 m (kumulativ) tragen und 1:30 min am Stück statisch halten' },
     { name: 'Standard: Strongman Bag über die Stange', target: p.bagHeavy + ' kg × ' + p.bagHeavyReps + ' und ' + p.bag + ' kg × 10 Wdh. am Stück, Stange ' + p.barCm + ' cm' },
     { name: 'Standard: Sandball über die Stange', target: p.sandball + ' kg über eine 1,83 m hohe Stange' },
-    { name: 'Standard: Duffel Bag', target: p.duffelThrow + ' kg auf 1,8 m Höhe werfen, Clean & Press' + (p.duffelMax > p.duffelThrow ? ' (Duffel bis ' + p.duffelMax + ' kg)' : '') },
-    { name: 'Standard: Benzinkanister', target: 'Farmer- oder Suitcase-Carry mit bis ' + p.can + ' kg' },
-    { name: 'Standard: Seilklettern', target: p.rope + ' Wdh. am ' + p.ropeM + '-m-Seil (kumulativ)' },
-    { name: 'Standard: Axle Bar', target: p.axle + ' kg über Kopf drücken und mind. 9 m über Kopf gehen, 2–3× pro Runde' },
+    { name: 'Standard: Duffel Bag', target: p.duffelThrow + ' kg auf 1,8 m Höhe werfen, Clean & Press, über Kopf, Schulter und seitlich tragen' },
+    { name: 'Standard: Benzinkanister', target: 'Farmer- oder Suitcase-Carry mit ' + p.can + ' kg, auch über und unter Hindernisse' },
+    { name: 'Standard: Seilklettern', target: p.rope + ' Wdh. am ' + p.ropeM + '-m-Seil im Lauf eines Workouts' },
+    { name: 'Standard: Axle Bar', target: p.axle + ' kg umsetzen, über Kopf drücken und mind. 9 m über Kopf gehen, 2–3× pro Runde' },
     { name: 'Standard: Farmer Carry', target: p.farmer + ' kg gesamt, mind. 18 m hin und 18 m zurück, bis 4× pro Stage' },
     { name: 'Standard: Rucking', target: p.ruckLong + ' kg über 9,7 km bzw. ' + p.ruckShort + ' kg über 6,4 km' },
-    { name: 'Standard: Kettlebell', target: 'bis ' + p.kb + ' kg' },
-    { name: 'Standard: Tombstone', target: 'bis ' + p.tombstone + ' kg' },
+    { name: 'Standard: Kettlebell', target: p.kbToss + ' kg über eine ' + p.kbBar + ' m hohe Stange werfen; ' + kbMax },
+    { name: 'Floater 1: Max Output C2 Ergometer', target: '90 s maximale Kalorien auf Row-, Bike- oder SkiErg' },
+    { name: 'Floater 2: Hand-Release-Burpee über Stange', target: '90 s maximale Wdh. über eine ' + (p.male ? '102' : '81') + ' cm hohe Stange' },
+    { name: 'Floater 3: Schlitten ziehen', target: '90 s maximale Strecke mit ' + p.sled + ' auf dem Schlitten' },
+    { name: 'Floater 4: Max Reps Weave', target: '120 s maximale Wdh. mit ' + p.weave + ' kg Duffel über 137 cm, durch die Mitte, unter 61 cm' },
+    { name: 'Floater 5: Max Load Over Bar', target: '90 s Säcke von 18 bis 91 kg über eine ' + (p.male ? '122' : '107') + ' cm hohe Stange, maximale Gesamtlast' },
+    { name: 'Floater 6: Bag Over Bar auf Zeit', target: '30 Wdh. mit ' + p.bagTime + ' kg über ' + (p.male ? '122' : '107') + ' cm, Zeitlimit 5 min' },
+    { name: 'Floater 7: Low Bar Weave', target: '120 s maximale Wdh. mit ' + p.lowWeave + ' kg Sack über und unter eine 48 cm hohe Stange' },
+    { name: 'Floater 8: Burpee-Weitsprung', target: p.burpees + ' Hand-Release-Burpees mit Weitsprung über ' + p.gap + ' m auf Zeit, Zeitlimit 5 min' },
+    { name: 'Floater 9: Burn Pit Shuttle', target: 'Sprint und 3 Säcke (' + p.burnPit + ') hin und zurück tragen, Zeitlimit 5 min' },
+    { name: 'Floater 10: Kanister und Körper über Stangen', target: '120 s maximale Punkte mit ' + p.cans + ' Kanistern über Stangen von ' + p.canBars },
+    { name: 'Floater 11: Double Duffel Shuffle', target: '90 s maximale Strecke, ' + p.duffels + ' Duffel am Boden ziehen' },
+    { name: 'Floater 12: Max Shuttle Runs', target: '90 s maximale Pendelläufe über je 7,6 m' },
+    { name: 'Häufig: Laufen im Plattenträger', target: 'mind. 400 m am Stück ohne Pause (Trainingstipp des Veranstalters)' },
+    { name: 'Häufig: Schießen unter Belastung', target: 'Schießen direkt nach körperlicher Anstrengung, Wechsel Gewehr und Pistole im Plattenträger' },
   ];
-  if (!div.noSandbell) {
-    list.push({ name: 'Standard: Sandbell', target: 'bis ' + p.sandbell + ' kg' });
-  }
-  return list;
-}
-
-// Text für die KI: diese Standards sind fest hinterlegt und sollen nicht wiederholt werden
-function ttgPromptText(divName: string, reqs: { name: string; target: string }[]): string {
-  return '\nOffizielle körperliche Standards der Division ' + divName + ' (fest hinterlegt, nicht wiederholen):\n' +
-    reqs.map((r) => '- ' + r.name.replace('Standard: ', '') + ': ' + r.target).join('\n') +
-    '\nNenne höchstens 10 weitere Einträge: veröffentlichte Floater, weitere Standards (z. B. Pflichtgewicht des Plattenträgers) und häufige Übungen aus früheren Stages.';
 }
 
 // Regel zum Geschlecht des Athleten
@@ -559,25 +604,31 @@ Deno.serve(async (req: Request) => {
   // Übungsziel (jede Art von Übung): per Erkennung oder später, wenn die KI es als Übungsziel meldet
   let exercise = !official && !obstacle && !stages && (skill || isExerciseGoal(event + ' ' + hint));
 
-  // The Tactical Games: Divisionen und offizielle Standards sind fest hinterlegt
-  const ttg = stages && isTacticalGames(event + ' ' + hint + ' ' + variant);
-  const ttgDiv = ttg ? (ttgDivision(event + ' ' + variant, sex) ?? ttgDivision(hint, sex)) : null;
-  const ttgReqs = ttgDiv ? ttgRequirements(ttgDiv) : [];
-  if (ttg && !ttgDiv && variant === '') {
+  // The Tactical Games: Divisionen, Standards und Floater sind fest hinterlegt, ohne KI und Websuche
+  if (stages && isTacticalGames(event + ' ' + hint + ' ' + variant)) {
+    const div = ttgDivision(event + ' ' + variant, sex) ?? ttgDivision(hint, sex);
+    if (!div) {
+      return json({
+        variants: ttgVariants(sex),
+        requirements: [],
+        sources: [],
+        category: 'Taktische Spiele',
+        summary: 'Erkannt als: The Tactical Games. Wähle deine Division.',
+      });
+    }
     return json({
-      variants: ttgVariants(sex),
-      requirements: [],
-      sources: [],
+      variants: [],
       category: 'Taktische Spiele',
-      summary: 'Erkannt als: The Tactical Games. Wähle deine Division.',
+      summary: 'Erkannt als: The Tactical Games – ' + div.name + '. Offizielle Standards und veröffentlichte Floater des Veranstalters, genau übernommen. Die übrigen Stages werden erst kurz vorher bekannt gegeben.',
+      requirements: ttgRequirements(div),
+      sources: TTG_SOURCES,
     });
   }
   let switched = false;
   const today = new Date().toISOString().slice(0, 10);
   const buildUserText = () =>
     (exercise ? 'Übungsziel: ' : 'Veranstaltung: ') + event + (hint ? '\nZusatzinfo: ' + hint : '') +
-    (variant ? '\nGewählte Variante: ' + variant : ttgDiv ? '\nGewählte Variante: ' + ttgDiv.name : '') +
-    (ttgDiv ? ttgPromptText(ttgDiv.name, ttgReqs) : '') +
+    (variant ? '\nGewählte Variante: ' + variant : '') +
     '\n' + genderRule(sex) +
     '\nHeutiges Datum: ' + today;
 
@@ -689,7 +740,7 @@ Deno.serve(async (req: Request) => {
   // Mehrere Varianten und noch keine gewählt: Auswahl zurückgeben
   const deep = official || obstacle || exercise || stages;
 
-  if (!official && !exercise && variant === '' && !ttgDiv && parsed && Array.isArray(parsed.variants) && parsed.variants.length >= 2) {
+  if (!official && !exercise && variant === '' && parsed && Array.isArray(parsed.variants) && parsed.variants.length >= 2) {
     const variants = parsed.variants
       .filter((v: any) => v && v.name)
       .slice(0, 8)
@@ -708,23 +759,17 @@ Deno.serve(async (req: Request) => {
       });
     }
   }
-  // Bei The Tactical Games mit Division gibt es die festen Standards auch ohne Suchergebnis
-  const aiOk = parsed && parsed.found === true && Array.isArray(parsed.requirements);
-  if (!aiOk && !ttgDiv) {
+  if (!parsed || parsed.found !== true || !Array.isArray(parsed.requirements)) {
     return json(notFound);
   }
-  if (!aiOk) {
-    parsed = { requirements: [] };
-  }
 
-  // Wettkämpfe mit geheimen Stages: alle Floater, Standards und wiederkehrenden Übungen (plus 3 Erfahrungswerte);
-  // bei The Tactical Games zuerst die festen Standards, dann höchstens 10 weitere aus der Suche
-  const maxReq = ttgDiv ? 10 : stages ? 22 : deep ? 10 : 15;
-  const requirements = ttgReqs.concat(parsed.requirements
+  // Wettkämpfe mit geheimen Stages: alle Floater, Standards und wiederkehrenden Übungen (plus 3 Erfahrungswerte)
+  const maxReq = stages ? 22 : deep ? 10 : 15;
+  const requirements = parsed.requirements
     .filter((r: any) => r && r.name && r.target)
     .filter((r: any) => genderOk(sex, String(r.name), String(r.target)))
     .slice(0, maxReq)
-    .map((r: any) => ({ name: String(r.name).slice(0, 120), target: String(r.target).slice(0, 200) })));
+    .map((r: any) => ({ name: String(r.name).slice(0, 120), target: String(r.target).slice(0, 200) }));
 
   if (requirements.length === 0) {
     return json(notFound);
@@ -755,13 +800,9 @@ Deno.serve(async (req: Request) => {
     .filter((u: string) => seenUrls.has(u))
     .slice(0, 5)
     .map((u: string) => ({ title: seenUrls.get(u) as string, url: u }));
-  if (ttgDiv) {
-    sources.unshift(TTG_SOURCE);
-  }
 
-  const fullName = ttgDiv ? 'The Tactical Games – ' + ttgDiv.name : parsed.event_full_name ? String(parsed.event_full_name) : event;
-  const summaryText = (parsed.summary ? String(parsed.summary) : '') +
-    (ttgDiv ? ' Die offiziellen körperlichen Standards des Veranstalters sind genau übernommen.' : '');
+  const fullName = parsed.event_full_name ? String(parsed.event_full_name) : event;
+  const summaryText = parsed.summary ? String(parsed.summary) : '';
 
   const summaryFull = official
     ? ('Erkannt als: ' + fullName + '. ' + summaryText + ' ' + OFFICIAL_NOTICE).trim()
@@ -779,7 +820,7 @@ Deno.serve(async (req: Request) => {
           ? 'Hindernislauf'
           : parsed.category
             ? String(parsed.category).slice(0, 40)
-            : ttg ? 'Taktische Spiele' : '',
+            : '',
     summary: summaryFull,
     requirements: requirements,
     sources: sources,
