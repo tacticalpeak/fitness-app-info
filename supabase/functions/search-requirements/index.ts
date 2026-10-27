@@ -449,9 +449,11 @@ Deno.serve(async (req: Request) => {
   const sex = sexRaw === 'Männlich' || sexRaw === 'Weiblich' ? sexRaw : 'Divers';
   const variant = String(body && body.variant ? body.variant : '').trim().slice(0, 160);
 
-  const official = isOfficialTest(event + ' ' + hint);
-  const skill = !official && isSkillName(event + ' ' + hint);
-  const stages = !official && !skill && isStageCompetition(event + ' ' + hint + ' ' + variant);
+  // Wettkämpfe mit Stages zuerst prüfen: die Zusatzinfo enthält oft Ausschlüsse (z. B. "Pistole"),
+  // die sonst fälschlich als Behördentest oder Übungsziel erkannt würden
+  const stages = isStageCompetition(event + ' ' + variant);
+  const official = !stages && isOfficialTest(event + ' ' + hint);
+  const skill = !stages && !official && isSkillName(event + ' ' + hint);
   const obstacle = !official && !skill && !stages && isObstacleRace(event + ' ' + hint + ' ' + variant);
   // Übungsziel (jede Art von Übung): per Erkennung oder später, wenn die KI es als Übungsziel meldet
   let exercise = !official && !obstacle && !stages && (skill || isExerciseGoal(event + ' ' + hint));
@@ -488,10 +490,10 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             model: MODEL,
             // Genug Platz für Nachdenken und Antwort, sonst wird das JSON abgeschnitten
-            max_tokens: stages ? 14000 : deep ? 10000 : 8000,
+            max_tokens: stages ? 12000 : deep ? 10000 : 8000,
             system: official ? OFFICIAL_PROMPT : exercise ? EXERCISE_PROMPT : obstacle ? OBSTACLE_PROMPT : stages ? STAGE_PROMPT : SYSTEM_PROMPT,
             messages: messages,
-            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: stages ? 8 : deep ? 6 : MAX_SEARCHES }],
+            tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: deep || stages ? 6 : MAX_SEARCHES }],
           }),
         });
 
