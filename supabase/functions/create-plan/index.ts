@@ -111,6 +111,15 @@ Zusatzregeln für Sport- und Einstellungstests von Behörden (Polizei, Bundesweh
 - Kein Schwimmtraining ohne Zugang zu einem Becken voraussetzen: nenne in "note" eine Alternative, falls Schwimmen gefragt ist.`;
 
 
+// Wettkämpfe wie The Tactical Games (Floater, Stages): Ausdauer soll immer erhalten bleiben
+function isStageCompetitionGoal(category: string, requirements: { name: string }[]): boolean {
+  return /taktische\s*spiele/i.test(category) || requirements.some((r) => /^floater\b/i.test(r.name));
+}
+const COMPETITION_RULES = `
+
+Zusatzregel, weil das Ziel ein Wettkampf mit wechselnden Stages ist (z. B. The Tactical Games):
+- Fördere und erhalte die Ausdauer in jeder Woche, auch in Kraft-Schwerpunkten. Form und Umfang wählst du passend zu Phase, Ermüdung und Zielanforderungen (z. B. Läufe, Intervalle, Rucking, Ergometer oder Läufe zwischen Stationen), ohne feste Vorgabe.`;
+
 const STAGE_RULES = `
 
 Zusatzregeln, weil das Ziel ein konkretes Übungs- oder Leistungsziel ist (z. B. ein Skill, ein Gewicht, Wiederholungen, eine Haltezeit, eine Zeit oder Beweglichkeit):
@@ -792,6 +801,7 @@ Deno.serve(async (req: Request) => {
           SYSTEM_PROMPT +
           (str(goalIn.category, 40) === 'Behörden-Sporttest' ? OFFICIAL_RULES : '') +
           (isStageGoal(str(goalIn.category, 40), requirements) ? STAGE_RULES : '') +
+          (isStageCompetitionGoal(str(goalIn.category, 40), requirements) ? COMPETITION_RULES : '') +
           (shared ? SHARED_RULES : '') +
           (schedule ? SCHEDULE_RULES : '') +
           (latestTest || latestSim ? RESULT_RULES : '') +
